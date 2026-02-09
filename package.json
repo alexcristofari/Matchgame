@@ -1,0 +1,16 @@
+{
+  "name": "matchgame",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:backend": "pnpm --filter @matchgame/backend dev",
+    "dev:web": "pnpm --filter @matchgame/web dev",
+    "build": "pnpm -r build",
+    "db:push": "pnpm --filter @matchgame/database db:push",
+    "db:studio": "pnpm --filter @matchgame/database studio"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

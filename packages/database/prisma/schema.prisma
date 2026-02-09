@@ -1,0 +1,172 @@
+// Prisma Schema for MatchGame
+// Using SQLite for simplicity (no Docker needed)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?  // null for OAuth-only users
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  profile      Profile?
+  integrations Integration[]
+  favorites    Favorite[]
+  likesGiven   Like[]        @relation("LikesGiven")
+  likesReceived Like[]       @relation("LikesReceived")
+  matchesAsUser1 Match[]     @relation("MatchUser1")
+  matchesAsUser2 Match[]     @relation("MatchUser2")
+  messagesSent Message[]
+  reportsGiven Report[]      @relation("ReportsGiven")
+  reportsReceived Report[]   @relation("ReportsReceived")
+  blocksGiven  Block[]       @relation("BlocksGiven")
+  blocksReceived Block[]     @relation("BlocksReceived")
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== PROFILE ====================
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  bio        String?
+  birthDate  DateTime?
+  location   String?
+  latitude   Float?
+  longitude  Float?
+  lookingFor String   @default("both") // friendship, relationship, both
+  photos     String   @default("[]") // JSON array of URLs
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== INTEGRATIONS ====================
+
+model Integration {
+  id           String    @id @default(cuid())
+  userId       String
+  type         String    // steam, spotify, riot, tmdb, mal, discord
+  externalId   String
+  accessToken  String?
+  refreshToken String?
+  data         String    @default("{}") // JSON data from API
+  syncedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+// ==================== FAVORITES ====================
+
+model Favorite {
+  id           String @id @default(cuid())
+  userId       String
+  category     String // games, music, movies, anime, books
+  position     Int    // 1, 2, or 3
+  itemId       String
+  itemName     String
+  itemImageUrl String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category, position])
+}
+
+// ==================== MATCHING ====================
+
+model Like {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  isSuperLike Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Match {
+  id                 String   @id @default(cuid())
+  user1Id            String
+  user2Id            String
+  compatibilityScore Int      @default(0)
+  scoreBreakdown     String   @default("{}") // JSON
+  createdAt          DateTime @default(now())
+
+  user1    User      @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2    User      @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([user1Id, user2Id])
+}
+
+// ==================== CHAT ====================
+
+model Message {
+  id        String    @id @default(cuid())
+  matchId   String
+  senderId  String
+  content   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+// ==================== MODERATION ====================
+
+model Report {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  reason     String
+  details    String?
+  status     String   @default("pending") // pending, reviewed, resolved
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("ReportsGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ReportsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+}
+
+model Block {
+  id          String   @id @default(cuid())
+  blockerId   String
+  blockedId   String
+  createdAt   DateTime @default(now())
+
+  blocker User @relation("BlocksGiven", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+}
