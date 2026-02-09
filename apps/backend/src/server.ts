@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,6 +6,8 @@ import morgan from 'morgan';
 import { authRouter } from './modules/auth/auth.controller';
 import { usersRouter } from './modules/users/users.controller';
 import { profilesRouter } from './modules/profiles/profiles.controller';
+import { integrationsRouter } from './modules/integrations/integrations.controller';
+import { favoritesRouter } from './modules/favorites/favorites.controller';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,6 +32,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/profiles', profilesRouter);
+app.use('/api/integrations', integrationsRouter);
+app.use('/api/favorites', favoritesRouter);
 
 // Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -43,6 +48,11 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📝 API docs: http://localhost:${PORT}/health`);
+
+    // Start Spotify callback HTTPS server
+    import('./modules/integrations/spotify-callback-server').then(({ startSpotifyCallbackServer }) => {
+        startSpotifyCallbackServer();
+    }).catch(console.error);
 });
 
 export default app;

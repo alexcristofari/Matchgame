@@ -116,4 +116,81 @@ export const profilesApi = {
     },
 };
 
+// Integrations API
+export const integrationsApi = {
+    // Get status of all integrations
+    getStatus: async () => {
+        const response = await api.get('/integrations/status');
+        return response.data;
+    },
+
+    // Steam
+    connectSteam: async (steamId: string) => {
+        const response = await api.post('/integrations/steam/connect', { steamId });
+        return response.data;
+    },
+
+    getSteam: async () => {
+        const response = await api.get('/integrations/steam');
+        return response.data;
+    },
+
+    disconnectSteam: async () => {
+        const response = await api.delete('/integrations/steam');
+        return response.data;
+    },
+
+    // Favorites (Global)
+    searchGames: async (query: string) => {
+        const response = await api.get(`/favorites/games/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    getFavoriteGames: async () => {
+        const response = await api.get('/favorites/games');
+        return response.data;
+    },
+
+    saveFavoriteGames: async (favorites: { appid: number; name: string; iconUrl?: string }[]) => {
+        const response = await api.put('/favorites/games', { favorites });
+        return response.data;
+    },
+
+    // Legacy (Steam Integration)
+    getSteamGames: async () => {
+        const response = await api.get('/integrations/steam/games');
+        return response.data;
+    },
+
+    // Spotify
+    getSpotifyAuthUrl: async () => {
+        const response = await api.get('/integrations/spotify/auth');
+        return response.data;
+    },
+
+    getSpotify: async () => {
+        const response = await api.get('/integrations/spotify');
+        return response.data;
+    },
+
+    disconnectSpotify: async () => {
+        const response = await api.delete('/integrations/spotify');
+        return response.data;
+    },
+    saveSpotifyManual: async (data: { profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: any[] }) => {
+        const response = await api.put('/integrations/spotify/manual', data);
+        return response.data;
+    },
+
+    searchSpotifyTracks: async (query: string) => {
+        const response = await api.get(`/integrations/spotify/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    getSpotifyGenres: async () => {
+        const response = await api.get('/integrations/spotify/genres');
+        return response.data;
+    },
+};
+
 export default api;

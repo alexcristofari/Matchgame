@@ -1,12 +1,12 @@
 // Prisma Schema for MatchGame
-// Using SQLite for simplicity (no Docker needed)
+// Using SQL Server (migrated from SQLite)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
@@ -73,7 +73,7 @@ model Integration {
   externalId   String
   accessToken  String?
   refreshToken String?
-  data         String    @default("{}") // JSON data from API
+  data         String    @default("{}") @db.NVarChar(Max) // JSON data from API
   syncedAt     DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -109,8 +109,8 @@ model Like {
   isSuperLike Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser   User @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toUser   User @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([fromUserId, toUserId])
 }
@@ -123,8 +123,8 @@ model Match {
   scoreBreakdown     String   @default("{}") // JSON
   createdAt          DateTime @default(now())
 
-  user1    User      @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
-  user2    User      @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  user1    User      @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user2    User      @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   messages Message[]
 
   @@unique([user1Id, user2Id])
@@ -141,7 +141,7 @@ model Message {
   createdAt DateTime  @default(now())
 
   match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 // ==================== MODERATION ====================
@@ -155,8 +155,8 @@ model Report {
   status     String   @default("pending") // pending, reviewed, resolved
   createdAt  DateTime @default(now())
 
-  fromUser User @relation("ReportsGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser   User @relation("ReportsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+  fromUser User @relation("ReportsGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toUser   User @relation("ReportsReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model Block {
@@ -165,8 +165,8 @@ model Block {
   blockedId   String
   createdAt   DateTime @default(now())
 
-  blocker User @relation("BlocksGiven", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker User @relation("BlocksGiven", fields: [blockerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([blockerId, blockedId])
 }

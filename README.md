@@ -1,4 +1,4 @@
-# 🎮 MatchGame
+# MatchGame
 
 > **Social matching app for gamers** — Connect with people who share your taste in games, music, movies, and anime.
 
@@ -8,21 +8,21 @@
 
 ---
 
-## 📖 About
+## About
 
-MatchGame is a Tinder-style matching platform designed for gamers and introverts. Instead of matching based on looks, users connect through **shared interests** calculated by an algorithm that analyzes:
+MatchGame is a matching platform designed for gamers and introverts. Instead of matching based on looks, users connect through **shared interests** calculated by an algorithm that analyzes:
 
-- 🎮 **Games** — Steam library, League of Legends rank, hours played
-- 🎵 **Music** — Spotify top artists and genres
-- 🎬 **Movies/Shows** — TMDB ratings and favorites
-- 📺 **Anime** — MyAnimeList watchlist
-- ⭐ **Manual Favorites** — Top 3 picks in each category
+- **Games** — Steam library, League of Legends rank, hours played
+- **Music** — Spotify top artists and genres
+- **Movies/Shows** — TMDB ratings and favorites
+- **Anime** — MyAnimeList watchlist
+- **Manual Favorites** — Top 3 picks in each category
 
 The algorithm generates a **compatibility score (0-100%)** for each potential match.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 This is a **monorepo** using pnpm workspaces:
 
@@ -39,7 +39,7 @@ matchgame/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 | Technology | Purpose |
@@ -64,7 +64,7 @@ matchgame/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 20+
@@ -105,107 +105,45 @@ pnpm dev
 
 ---
 
-## 📡 API Endpoints
+## Recent Updates
 
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/refresh` | Refresh token |
-| GET | `/api/auth/me` | Get current user |
+### Steam Integration
+- Connect Steam account to import game library and playtime.
+- Select favorite games to display on profile.
+- Real-time synchronization with Steam API.
 
-### Users & Profiles
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users/me` | Get user details |
-| PATCH | `/api/users/me` | Update user |
-| GET | `/api/profiles/me` | Get profile |
-| POST | `/api/profiles` | Create profile |
-| PATCH | `/api/profiles/me` | Update profile |
+### Spotify Integration
+- Search and select favorite songs using Spotify API.
+- Select favorite genres from official Spotify list.
+- Display album art and listen to previews.
+- Link to Spotify profile.
+- Fallback system for API stability.
 
-### Health Check
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Server status |
+### User Profile
+- Public profile view with customizable bio and location.
+- "Top Pick" game and "Featured Song" embed.
+- Visual display of music taste and game history.
 
 ---
 
-## 🎨 Frontend Pages
+## Roadmap
 
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page with background image |
-| `/auth/login` | Login form |
-| `/auth/register` | Registration form |
-| `/dashboard` | User dashboard (protected) |
-
----
-
-## 🔐 Password Requirements
-
-When registering, passwords must have:
-- Minimum 6 characters
-- At least 1 uppercase letter (A-Z)
-- At least 1 number (0-9)
-
-Example: `Teste123`
+### Next Steps
+- **Matching Algorithm**: Develop compatibility scoring based on common games and genres.
+- **Discovery UI**: Implement swipe/card interface for finding matches.
+- **Real-time Chat**: Messaging system with WebSocket (Socket.io).
+- **More Integrations**: Add support for MyAnimeList and TMDB.
+- **Mobile Responsiveness**: Improve mobile experience for all pages.
 
 ---
 
-## 📁 Project Structure
-
-### Backend (`apps/backend/src/`)
-```
-├── server.ts              # Express entry point
-├── modules/
-│   ├── auth/              # Register, login, JWT
-│   ├── users/             # User CRUD
-│   └── profiles/          # Profile CRUD
-└── shared/
-    └── middlewares/       # Auth middleware
-```
-
-### Frontend (`apps/web/src/`)
-```
-├── app/
-│   ├── page.tsx           # Landing page
-│   ├── auth/login/        # Login page
-│   ├── auth/register/     # Register page
-│   └── dashboard/         # Dashboard page
-├── services/
-│   └── api.ts             # Axios instance
-└── store/
-    └── auth.ts            # Zustand auth store
-```
-
----
-
-## 🗺️ Roadmap
-
-### ✅ Completed
-- [x] Monorepo structure
-- [x] Authentication (register, login, JWT)
-- [x] User & Profile CRUD
-- [x] Frontend auth pages
-- [x] Dashboard UI
-
-### 🔜 Next Steps
-- [ ] Platform integrations (Steam, Spotify, MAL)
-- [ ] Favorites system (Top 3 per category)
-- [ ] Matching algorithm
-- [ ] Swipe/Discovery UI
-- [ ] Real-time chat (Socket.io)
-
----
-
-## 👤 Author
+## Author
 
 **Alex Cristofari**
 - GitHub: [@alexcristofari](https://github.com/alexcristofari)
 
 ---
 
-## 📄 License
+## License
 
 This project is private and not licensed for public use.
