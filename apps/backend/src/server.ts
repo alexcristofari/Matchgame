@@ -8,6 +8,7 @@ import { usersRouter } from './modules/users/users.controller';
 import { profilesRouter } from './modules/profiles/profiles.controller';
 import { integrationsRouter } from './modules/integrations/integrations.controller';
 import { favoritesRouter } from './modules/favorites/favorites.controller';
+import { matchesRouter } from './modules/matches/matches.controller';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/favorites', favoritesRouter);
+app.use('/api/matches', matchesRouter);
 
 // Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

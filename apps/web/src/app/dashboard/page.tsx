@@ -58,6 +58,28 @@ export default function DashboardPage() {
     const [trackSearchResults, setTrackSearchResults] = useState<any[]>([]);
     const [isSearchingTracks, setIsSearchingTracks] = useState(false);
 
+    // Anime Modal State
+    const [showAnimeModal, setShowAnimeModal] = useState(false);
+    const [animeData, setAnimeData] = useState({
+        genres: [] as string[],
+        favorites: [] as { id: number; title: string; imageUrl: string }[]
+    });
+    const [availableAnimeGenres, setAvailableAnimeGenres] = useState<string[]>([]);
+    const [animeSearchQuery, setAnimeSearchQuery] = useState('');
+    const [animeSearchResults, setAnimeSearchResults] = useState<any[]>([]);
+    const [isSearchingAnime, setIsSearchingAnime] = useState(false);
+
+    // Movie Modal State
+    const [showMovieModal, setShowMovieModal] = useState(false);
+    const [movieData, setMovieData] = useState({
+        genres: [] as string[],
+        favorites: [] as { id: number; title: string; imageUrl: string }[]
+    });
+    const [availableMovieGenres, setAvailableMovieGenres] = useState<string[]>([]);
+    const [movieSearchQuery, setMovieSearchQuery] = useState('');
+    const [movieSearchResults, setMovieSearchResults] = useState<any[]>([]);
+    const [isSearchingMovie, setIsSearchingMovie] = useState(false);
+
     // Music Handlers
     const handleMusicChange = (field: string, value: any, index?: number, subField?: string) => {
         setMusicData(prev => {
@@ -182,6 +204,169 @@ export default function DashboardPage() {
             }
         } catch (err: any) {
             setError(err.response?.data?.error || 'Erro ao salvar música');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    // Anime Handlers
+    useEffect(() => {
+        if (showAnimeModal && availableAnimeGenres.length === 0) {
+            integrationsApi.getAnimeGenres().then(res => {
+                if (res.success) setAvailableAnimeGenres(res.data);
+            });
+        }
+    }, [showAnimeModal]);
+
+    // Anime Search Debounce
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            if (animeSearchQuery.trim().length > 2) {
+                setIsSearchingAnime(true);
+                try {
+                    const res = await integrationsApi.searchAnime(animeSearchQuery);
+                    if (res.success) setAnimeSearchResults(res.data);
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setIsSearchingAnime(false);
+                }
+            } else {
+                setAnimeSearchResults([]);
+            }
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [animeSearchQuery]);
+
+    const toggleAnimeGenre = (genre: string) => {
+        setAnimeData(prev => {
+            const current = prev.genres || [];
+            if (current.includes(genre)) {
+                return { ...prev, genres: current.filter(g => g !== genre) };
+            }
+            if (current.length >= 3) return prev;
+            return { ...prev, genres: [...current, genre] };
+        });
+    };
+
+    const addAnime = (anime: any) => {
+        setAnimeData(prev => {
+            if (prev.favorites.length >= 5) return prev;
+            if (prev.favorites.some(f => f.id === anime.id)) return prev;
+
+            return {
+                ...prev,
+                favorites: [...prev.favorites, {
+                    id: anime.id,
+                    title: anime.title,
+                    imageUrl: anime.imageUrl
+                }]
+            };
+        });
+        setAnimeSearchQuery('');
+        setAnimeSearchResults([]);
+    };
+
+    const removeAnimeItem = (field: 'genres' | 'favorites', index: number) => {
+        setAnimeData(prev => {
+            if (field === 'genres') {
+                return { ...prev, genres: prev.genres.filter((_, i) => i !== index) };
+            } else {
+                return { ...prev, favorites: prev.favorites.filter((_, i) => i !== index) };
+            }
+        });
+    };
+
+    const handleSaveAnime = async () => {
+        setConnecting(true);
+        try {
+            await integrationsApi.saveAnimeManual(animeData);
+            setSuccess('Perfil de animes salvo com sucesso!');
+            setShowAnimeModal(false);
+            // loadIntegrations(); // Assume we might want to reload sync status if we had one
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Erro ao salvar animes');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    // Movie Handlers
+    useEffect(() => {
+        if (showMovieModal && availableMovieGenres.length === 0) {
+            integrationsApi.getMovieGenres().then(res => {
+                if (res.success) setAvailableMovieGenres(res.data);
+            });
+        }
+    }, [showMovieModal]);
+
+    // Movie Search Debounce
+    useEffect(() => {
+        const timeoutId = setTimeout(async () => {
+            if (movieSearchQuery.trim().length > 2) {
+                setIsSearchingMovie(true);
+                try {
+                    const res = await integrationsApi.searchMovies(movieSearchQuery);
+                    if (res.success) setMovieSearchResults(res.data);
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setIsSearchingMovie(false);
+                }
+            } else {
+                setMovieSearchResults([]);
+            }
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [movieSearchQuery]);
+
+    const toggleMovieGenre = (genre: string) => {
+        setMovieData(prev => {
+            const current = prev.genres || [];
+            if (current.includes(genre)) {
+                return { ...prev, genres: current.filter(g => g !== genre) };
+            }
+            if (current.length >= 3) return prev;
+            return { ...prev, genres: [...current, genre] };
+        });
+    };
+
+    const addMovie = (movie: any) => {
+        setMovieData(prev => {
+            if (prev.favorites.length >= 5) return prev;
+            if (prev.favorites.some(f => f.id === movie.id)) return prev;
+
+            return {
+                ...prev,
+                favorites: [...prev.favorites, {
+                    id: movie.id,
+                    title: movie.title,
+                    imageUrl: movie.imageUrl
+                }]
+            };
+        });
+        setMovieSearchQuery('');
+        setMovieSearchResults([]);
+    };
+
+    const removeMovieItem = (field: 'genres' | 'favorites', index: number) => {
+        setMovieData(prev => {
+            if (field === 'genres') {
+                return { ...prev, genres: prev.genres.filter((_, i) => i !== index) };
+            } else {
+                return { ...prev, favorites: prev.favorites.filter((_, i) => i !== index) };
+            }
+        });
+    };
+
+    const handleSaveMovie = async () => {
+        setConnecting(true);
+        try {
+            await integrationsApi.saveMovieManual(movieData);
+            setSuccess('Perfil de filmes salvo com sucesso!');
+            setShowMovieModal(false);
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Erro ao salvar filmes');
         } finally {
             setConnecting(false);
         }
@@ -416,6 +601,11 @@ export default function DashboardPage() {
                 }).catch(console.error);
             }
             setShowMusicModal(true);
+            setShowMusicModal(true);
+        } else if (name === 'MyAnimeList') {
+            setShowAnimeModal(true);
+        } else if (name === 'TMDB') {
+            setShowMovieModal(true);
         } else {
             alert(`${name} em breve!`);
         }
@@ -445,7 +635,7 @@ export default function DashboardPage() {
     const integrationItems = [
         { icon: '🎮', name: 'Steam', desc: 'Your game library', connected: integrations.steam.connected },
         { icon: '🎵', name: 'Spotify', desc: 'Top artists & songs', connected: integrations.spotify.connected },
-        { icon: '📺', name: 'MyAnimeList', desc: 'Anime watchlist', connected: false },
+        { icon: '📺', name: 'MyAnimeList', desc: 'Anime watchlist', connected: false }, // Manual connection trigger
         { icon: '🎬', name: 'TMDB', desc: 'Movies & shows', connected: false },
     ];
 
@@ -766,6 +956,242 @@ export default function DashboardPage() {
                                 >
                                     {connecting ? 'Salvando...' : `Salvar ${selectedFavorites.length} favoritos`}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Anime Modal */}
+            <AnimatePresence>
+                {showAnimeModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowAnimeModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="card p-6 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <h2 className="text-xl font-bold mb-4">📺 Seus Animes Favoritos</h2>
+
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                                {/* Genres Selection */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm text-gray-400">Gêneros de Anime (Max 3)</label>
+                                        <span className="text-xs text-gray-500">{animeData.genres.length}/3</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-[#1a1a1a] rounded-lg border border-white/5">
+                                        {availableAnimeGenres.map(genre => (
+                                            <button
+                                                key={genre}
+                                                onClick={() => toggleAnimeGenre(genre)}
+                                                disabled={!animeData.genres.includes(genre) && animeData.genres.length >= 3}
+                                                className={`px-3 py-1 text-xs rounded-full border transition-colors ${animeData.genres.includes(genre)
+                                                    ? 'bg-blue-500 border-blue-500 text-white'
+                                                    : 'bg-transparent border-white/10 hover:border-white/30 text-gray-300'
+                                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                            >
+                                                {genre}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Anime Search & List */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm text-gray-400">Top 5 Animes</label>
+                                        <span className="text-xs text-gray-500">{animeData.favorites.length}/5</span>
+                                    </div>
+
+                                    {/* Selected Animes */}
+                                    <div className="space-y-2 mb-4">
+                                        {animeData.favorites.map((anime, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-2 bg-[#1a1a1a] rounded-lg border border-white/5">
+                                                {anime.imageUrl ? (
+                                                    <img src={anime.imageUrl} alt={anime.title} className="w-10 h-14 rounded object-cover" />
+                                                ) : (
+                                                    <div className="w-10 h-14 bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500">
+                                                        📺
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">{anime.title}</p>
+                                                </div>
+                                                <button onClick={() => removeAnimeItem('favorites', index)} className="text-red-400 hover:text-red-300 p-1">
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Search Input */}
+                                    {animeData.favorites.length < 5 && (
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar anime (Naruto, One Piece...)"
+                                                value={animeSearchQuery}
+                                                onChange={e => setAnimeSearchQuery(e.target.value)}
+                                                className="input w-full pl-10"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+
+                                            {/* Results Dropdown */}
+                                            {(animeSearchResults.length > 0 || isSearchingAnime) && (
+                                                <div className="absolute bottom-full left-0 w-full mb-2 bg-[#252525] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto z-10">
+                                                    {isSearchingAnime && <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>}
+                                                    {animeSearchResults.map(anime => (
+                                                        <button
+                                                            key={anime.id}
+                                                            onClick={() => addAnime(anime)}
+                                                            className="w-full flex items-center gap-3 p-2 hover:bg-white/5 text-left border-b border-white/5 last:border-0"
+                                                        >
+                                                            {anime.imageUrl && (
+                                                                <img src={anime.imageUrl} alt={anime.title} className="w-8 h-12 rounded object-cover" />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium truncate">{anime.title}</p>
+                                                                <p className="text-xs text-gray-400 truncate">{anime.year}</p>
+                                                            </div>
+                                                            <span className="text-blue-400 text-xs">+ Add</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-4 pt-4 border-t border-[#333]">
+                                <button onClick={() => setShowAnimeModal(false)} className="btn-secondary flex-1" disabled={connecting}>Cancelar</button>
+                                <button onClick={handleSaveAnime} className="btn-primary flex-1" disabled={connecting}>{connecting ? 'Salvando...' : 'Salvar Animes'}</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Movie Modal */}
+            <AnimatePresence>
+                {showMovieModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowMovieModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="card p-6 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <h2 className="text-xl font-bold mb-4">🎬 Seus Filmes Favoritos</h2>
+
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                                {/* Genres Selection */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm text-gray-400">Gêneros de Filmes (Max 3)</label>
+                                        <span className="text-xs text-gray-500">{movieData.genres.length}/3</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 bg-[#1a1a1a] rounded-lg border border-white/5">
+                                        {availableMovieGenres.map(genre => (
+                                            <button
+                                                key={genre}
+                                                onClick={() => toggleMovieGenre(genre)}
+                                                disabled={!movieData.genres.includes(genre) && movieData.genres.length >= 3}
+                                                className={`px-3 py-1 text-xs rounded-full border transition-colors ${movieData.genres.includes(genre)
+                                                    ? 'bg-red-500 border-red-500 text-white'
+                                                    : 'bg-transparent border-white/10 hover:border-white/30 text-gray-300'
+                                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                            >
+                                                {genre}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Movie Search & List */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm text-gray-400">Top 5 Filmes</label>
+                                        <span className="text-xs text-gray-500">{movieData.favorites.length}/5</span>
+                                    </div>
+
+                                    {/* Selected Movies */}
+                                    <div className="space-y-2 mb-4">
+                                        {movieData.favorites.map((movie, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-2 bg-[#1a1a1a] rounded-lg border border-white/5">
+                                                {movie.imageUrl ? (
+                                                    <img src={movie.imageUrl} alt={movie.title} className="w-10 h-14 rounded object-cover" />
+                                                ) : (
+                                                    <div className="w-10 h-14 bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500">
+                                                        🎬
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">{movie.title}</p>
+                                                </div>
+                                                <button onClick={() => removeMovieItem('favorites', index)} className="text-red-400 hover:text-red-300 p-1">
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Search Input */}
+                                    {movieData.favorites.length < 5 && (
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar filme (Matrix, Inception...)"
+                                                value={movieSearchQuery}
+                                                onChange={e => setMovieSearchQuery(e.target.value)}
+                                                className="input w-full pl-10"
+                                            />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+
+                                            {/* Results Dropdown */}
+                                            {(movieSearchResults.length > 0 || isSearchingMovie) && (
+                                                <div className="absolute bottom-full left-0 w-full mb-2 bg-[#252525] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto z-10">
+                                                    {isSearchingMovie && <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>}
+                                                    {movieSearchResults.map(movie => (
+                                                        <button
+                                                            key={movie.id}
+                                                            onClick={() => addMovie(movie)}
+                                                            className="w-full flex items-center gap-3 p-2 hover:bg-white/5 text-left border-b border-white/5 last:border-0"
+                                                        >
+                                                            {movie.imageUrl && (
+                                                                <img src={movie.imageUrl} alt={movie.title} className="w-8 h-12 rounded object-cover" />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium truncate">{movie.title}</p>
+                                                                <p className="text-xs text-gray-400 truncate">{movie.year}</p>
+                                                            </div>
+                                                            <span className="text-blue-400 text-xs">+ Add</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex gap-3 mt-4 pt-4 border-t border-[#333]">
+                                <button onClick={() => setShowMovieModal(false)} className="btn-secondary flex-1" disabled={connecting}>Cancelar</button>
+                                <button onClick={handleSaveMovie} className="btn-primary flex-1" disabled={connecting}>{connecting ? 'Salvando...' : 'Salvar Filmes'}</button>
                             </div>
                         </motion.div>
                     </motion.div>

@@ -33,6 +33,8 @@ model User {
   reportsReceived Report[]   @relation("ReportsReceived")
   blocksGiven  Block[]       @relation("BlocksGiven")
   blocksReceived Block[]     @relation("BlocksReceived")
+  dislikesGiven Dislike[]    @relation("DislikesGiven")
+  dislikesReceived Dislike[] @relation("DislikesReceived")
   refreshTokens RefreshToken[]
 }
 
@@ -111,6 +113,18 @@ model Like {
 
   fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toUser   User @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Dislike {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  createdAt   DateTime @default(now())
+
+  fromUser User @relation("DislikesGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toUser   User @relation("DislikesReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([fromUserId, toUserId])
 }

@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { SteamService } from './steam.service';
 import { SpotifyService } from './spotify.service';
+import { AnimeService } from './anime.service';
+import { MovieService } from './movie.service';
 import { steamConnectSchema } from './integrations.schema';
 import { AuthService } from '../auth/auth.service';
 import { ZodError } from 'zod';
@@ -384,6 +386,208 @@ integrationsRouter.put('/spotify/manual', authenticate, async (req: Request, res
         res.json({ success: true, data });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao salvar dados do Spotify';
+        res.status(500).json({ success: false, error: message });
+    }
+});
+
+// ==========================================
+// ANIME INTEGRATION (Jikan/Manual)
+// ==========================================
+
+// GET /api/integrations/anime - Get user anime integration
+integrationsRouter.get('/anime', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const integration = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'anime' } }
+        });
+
+        if (!integration) {
+            return res.json({ success: true, data: { connected: false } });
+        }
+
+        const data = JSON.parse(integration.data);
+        res.json({ success: true, data: { ...data, connected: true } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Erro ao buscar dados de anime' });
+    }
+});
+
+// GET /api/integrations/anime/search
+integrationsRouter.get('/anime/search', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { q } = req.query;
+        if (!q || typeof q !== 'string') {
+            return res.status(400).json({ success: false, error: 'Query obrigatória' });
+        }
+
+        const animes = await AnimeService.searchAnime(q);
+        res.json({ success: true, data: animes });
+    } catch (error) {
+        console.error('Anime Search Error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar animes' });
+    }
+});
+
+// GET /api/integrations/anime/genres
+integrationsRouter.get('/anime/genres', authenticate, async (req: Request, res: Response) => {
+    try {
+        const genres = await AnimeService.getGenres();
+        res.json({ success: true, data: genres });
+    } catch (error) {
+        console.error('Anime Genres Error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar gêneros de anime' });
+    }
+});
+
+// PUT /api/integrations/anime/manual
+integrationsRouter.put('/anime/manual', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { genres, favorites } = req.body;
+
+        // Validation
+        if (genres && (!Array.isArray(genres) || genres.length > 3)) {
+            return res.status(400).json({ success: false, error: 'Máximo de 3 gêneros' });
+        }
+        if (favorites && (!Array.isArray(favorites) || favorites.length > 5)) {
+            return res.status(400).json({ success: false, error: 'Máximo de 5 animes favoritos' });
+        }
+
+        // Check for existing integration
+        const existing = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'anime' } }
+        });
+
+        let data = existing ? JSON.parse(existing.data) : {};
+
+        data = {
+            ...data,
+            manual: true,
+            genres: genres || [],
+            favorites: favorites || [], // { id, title, imageUrl }
+            updatedAt: new Date().toISOString()
+        };
+
+        await prisma.integration.upsert({
+            where: { userId_type: { userId, type: 'anime' } },
+            update: {
+                data: JSON.stringify(data),
+                syncedAt: new Date()
+            },
+            create: {
+                userId,
+                type: 'anime',
+                externalId: `manual_anime_${userId}`,
+                data: JSON.stringify(data),
+                syncedAt: new Date()
+            }
+        });
+
+        res.json({ success: true, data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao salvar animes';
+        res.status(500).json({ success: false, error: message });
+    }
+});
+
+// ==========================================
+// MOVIE INTEGRATION (TMDB/Manual)
+// ==========================================
+
+// GET /api/integrations/movie - Get user movie integration
+integrationsRouter.get('/movie', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const integration = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'movie' } }
+        });
+
+        if (!integration) {
+            return res.json({ success: true, data: { connected: false } });
+        }
+
+        const data = JSON.parse(integration.data);
+        res.json({ success: true, data: { ...data, connected: true } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Erro ao buscar dados de filmes' });
+    }
+});
+
+// GET /api/integrations/movie/search
+integrationsRouter.get('/movie/search', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { q } = req.query;
+        if (!q || typeof q !== 'string') {
+            return res.status(400).json({ success: false, error: 'Query obrigatória' });
+        }
+
+        const movies = await MovieService.searchMovies(q);
+        res.json({ success: true, data: movies });
+    } catch (error) {
+        console.error('Movie Search Error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar filmes' });
+    }
+});
+
+// GET /api/integrations/movie/genres
+integrationsRouter.get('/movie/genres', authenticate, async (req: Request, res: Response) => {
+    try {
+        const genres = await MovieService.getGenres();
+        res.json({ success: true, data: genres });
+    } catch (error) {
+        console.error('Movie Genres Error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar gêneros de filmes' });
+    }
+});
+
+// PUT /api/integrations/movie/manual
+integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { genres, favorites } = req.body;
+
+        // Validation
+        if (genres && (!Array.isArray(genres) || genres.length > 3)) {
+            return res.status(400).json({ success: false, error: 'Máximo de 3 gêneros' });
+        }
+        if (favorites && (!Array.isArray(favorites) || favorites.length > 5)) {
+            return res.status(400).json({ success: false, error: 'Máximo de 5 filmes favoritos' });
+        }
+
+        // Check for existing integration
+        const existing = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'movie' } }
+        });
+
+        let data = existing ? JSON.parse(existing.data) : {};
+
+        data = {
+            ...data,
+            manual: true,
+            genres: genres || [],
+            favorites: favorites || [], // { id, title, imageUrl }
+            updatedAt: new Date().toISOString()
+        };
+
+        await prisma.integration.upsert({
+            where: { userId_type: { userId, type: 'movie' } },
+            update: {
+                data: JSON.stringify(data),
+                syncedAt: new Date()
+            },
+            create: {
+                userId,
+                type: 'movie',
+                externalId: `manual_movie_${userId}`,
+                data: JSON.stringify(data),
+                syncedAt: new Date()
+            }
+        });
+
+        res.json({ success: true, data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao salvar filmes';
         res.status(500).json({ success: false, error: message });
     }
 });

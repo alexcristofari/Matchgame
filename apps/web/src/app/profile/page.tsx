@@ -11,6 +11,8 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<{ bio?: string; location?: string; birthDate?: string; lookingFor?: string } | null>(null);
     const [favorites, setFavorites] = useState<{ appid: number; name: string; iconUrl?: string }[]>([]);
     const [spotifyData, setSpotifyData] = useState<{ profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: { name: string; artist: string; url: string; imageUrl?: string }[] } | null>(null);
+    const [animeData, setAnimeData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
+    const [movieData, setMovieData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,10 +20,12 @@ export default function ProfilePage() {
             if (!isAuthenticated) return;
             try {
                 // Parallel requests
-                const [profileRes, favoritesRes, spotifyRes] = await Promise.all([
+                const [profileRes, favoritesRes, spotifyRes, animeRes, movieRes] = await Promise.all([
                     profilesApi.getMyProfile().catch(() => ({ success: false, data: null })),
                     integrationsApi.getFavoriteGames().catch(() => ({ success: false, data: [] })),
-                    integrationsApi.getSpotify().catch(() => ({ success: false, data: null }))
+                    integrationsApi.getSpotify().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getAnime().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getMovie().catch(() => ({ success: false, data: null }))
                 ]);
 
                 if (profileRes.success) setProfile(profileRes.data);
@@ -46,6 +50,14 @@ export default function ProfilePage() {
                             imageUrl: a.imageUrl
                         })) : [])
                     });
+                }
+
+                if (animeRes.success && animeRes.data) {
+                    setAnimeData(animeRes.data);
+                }
+
+                if (movieRes.success && movieRes.data) {
+                    setMovieData(movieRes.data);
                 }
             } catch (error) {
                 console.error('Error loading profile data:', error);
@@ -278,6 +290,98 @@ export default function ProfilePage() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    )}
+                </motion.div>
+
+                {/* Anime Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    className="space-y-8"
+                >
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <span className="text-pink-400">📺</span> Anime Favorites
+                    </h2>
+
+                    {/* Anime Genres */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        {animeData?.genres && animeData.genres.map((genre, i) => (
+                            <span key={i} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
+                                {genre}
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Anime List */}
+                    {animeData?.favorites && animeData.favorites.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {animeData.favorites.map((anime) => (
+                                <div key={anime.id} className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all">
+                                    {anime.imageUrl ? (
+                                        <img src={anime.imageUrl} alt={anime.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-4xl">📺</div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                        <span className="text-sm font-bold text-white line-clamp-2">{anime.title}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
+                            <p className="text-gray-400">No anime favorites yet</p>
+                            <Link href="/dashboard" className="text-pink-400 text-sm hover:underline mt-2 inline-block">
+                                Add anime
+                            </Link>
+                        </div>
+                    )}
+                </motion.div>
+
+                {/* Movie Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    className="space-y-8"
+                >
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <span className="text-red-400">🎬</span> Movie Favorites
+                    </h2>
+
+                    {/* Movie Genres */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        {movieData?.genres && movieData.genres.map((genre, i) => (
+                            <span key={i} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
+                                {genre}
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Movie List */}
+                    {movieData?.favorites && movieData.favorites.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {movieData.favorites.map((movie) => (
+                                <div key={movie.id} className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all">
+                                    {movie.imageUrl ? (
+                                        <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                        <span className="text-sm font-bold text-white line-clamp-2">{movie.title}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
+                            <p className="text-gray-400">No movie favorites yet</p>
+                            <Link href="/dashboard" className="text-red-400 text-sm hover:underline mt-2 inline-block">
+                                Add movies
+                            </Link>
                         </div>
                     )}
                 </motion.div>

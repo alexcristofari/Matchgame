@@ -191,6 +191,61 @@ export const integrationsApi = {
         const response = await api.get('/integrations/spotify/genres');
         return response.data;
     },
+
+    // Anime (MAL/Jikan)
+    searchAnime: async (query: string) => {
+        const response = await api.get(`/integrations/anime/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    getAnimeGenres: async () => {
+        const response = await api.get('/integrations/anime/genres');
+        return response.data;
+    },
+
+    getAnime: async () => {
+        const response = await api.get('/integrations/anime');
+        return response.data;
+    },
+
+    saveAnimeManual: async (data: { genres?: string[]; favorites?: any[] }) => {
+        const response = await api.put('/integrations/anime/manual', data);
+        return response.data;
+    },
+
+    // Movies (TMDB)
+    searchMovies: async (query: string) => {
+        const response = await api.get(`/integrations/movie/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    getMovieGenres: async () => {
+        const response = await api.get('/integrations/movie/genres');
+        return response.data;
+    },
+
+    getMovie: async () => {
+        const response = await api.get('/integrations/movie');
+        return response.data;
+    },
+
+    saveMovieManual: async (data: { genres?: string[]; favorites?: any[] }) => {
+        const response = await api.put('/integrations/movie/manual', data);
+        return response.data;
+    },
+};
+
+// Discovery API
+export const discoveryApi = {
+    getRecommendations: async () => {
+        const response = await api.get('/matches/recommendations');
+        return response.data;
+    },
+
+    swipe: async (targetUserId: string, action: 'like' | 'pass' | 'superlike') => {
+        const response = await api.post('/matches/swipe', { targetUserId, action });
+        return response.data;
+    },
 };
 
 export default api;

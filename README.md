@@ -1,70 +1,74 @@
-# MatchGame
+# MatchGame 🎮
 
-> **Social matching app for gamers** — Connect with people who share your taste in games, music, movies, and anime.
+> **Social matching app for gamers, music lovers, and introverts.**  
+> Connect with people who share your true interests in games, music, movies, and anime.
 
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Node](https://img.shields.io/badge/node-20%2B-green)
-![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
-
----
-
-## About
-
-MatchGame is a matching platform designed for gamers and introverts. Instead of matching based on looks, users connect through **shared interests** calculated by an algorithm that analyzes:
-
-- **Games** — Steam library, League of Legends rank, hours played
-- **Music** — Spotify top artists and genres
-- **Movies/Shows** — TMDB ratings and favorites
-- **Anime** — MyAnimeList watchlist
-- **Manual Favorites** — Top 3 picks in each category
-
-The algorithm generates a **compatibility score (0-100%)** for each potential match.
+![Status](https://img.shields.io/badge/status-active%20development-brightgreen)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
+![Tech](https://img.shields.io/badge/stack-Next.js%20%7C%20Express%20%7C%20Prisma-blueviolet)
 
 ---
 
-## Architecture
+## 🚀 About
 
-This is a **monorepo** using pnpm workspaces:
+**MatchGame** is a matching platform designed to go beyond superficial swipes. We use real data from your favorite platforms to find meaningful connections.
+
+The algorithm analyzes:
+- **Games**: Steam library, playtime, and favorite genres.
+- **Music**: Spotify top artists, tracks, and audio features.
+- **Anime**: MyAnimeList watchlist and favorites.
+- **Movies**: TMDB ratings and favorite films.
+
+Users can browse profiles, see compatibility scores, and match based on shared passions.
+
+---
+
+## ✨ Features
+
+### 🔍 Discovery (New!)
+- **Swipe Interface**: Tinder-style card stack to browse potential matches.
+- **Smart Recommendations**: Algorithm filters out users you've already seen or blocked.
+- **Match System**: Mutual likes create a "Match" and open up the possibility to chat.
+- **Rich Profiles**: Cards display bio, location, age, and top favorites (Game/Song/Anime) directly on the front.
+
+### 🎮 Steam Integration
+- **Library Sync**: Automatically imports your owned games and playtime hours.
+- **Top Picks**: Select your top 5 favorite games to showcase on your profile.
+
+### 🎵 Spotify Integration
+- **Taste Profile**: Syncs your top artists and genres.
+- **Anthems**: Choose your "Profile Anthem" to play when users view your card.
+
+### 📺 Media Integration (Anime & Movies)
+- **MyAnimeList**: Search and add your favorite anime.
+- **TMDB**: Showcase your favorite movies and TV shows.
+
+---
+
+## 🛠️ Architecture
+
+This is a **monorepo** managing both frontend and backend:
 
 ```
 matchgame/
 ├── apps/
-│   ├── backend/          # Express API + Prisma + SQLite
-│   └── web/              # Next.js 14 frontend
+│   ├── backend/          # Express API + Prisma + Postgres/SQLite
+│   └── web/              # Next.js 14 (App Router) + Zustand + Framer Motion
 ├── packages/
-│   ├── shared/           # Shared TypeScript types
-│   └── database/         # Prisma client
+│   ├── shared/           # Shared TypeScript types & utilities
+│   └── database/         # Prisma Schema & Client
 └── pnpm-workspace.yaml
 ```
 
----
-
-## Tech Stack
-
-### Backend
-| Technology | Purpose |
-|------------|---------|
-| Node.js 20+ | Runtime |
-| Express | HTTP server |
-| TypeScript | Type safety |
-| Prisma | ORM (SQLite for dev) |
-| JWT | Authentication |
-| Zod | Validation |
-| bcrypt | Password hashing |
-
-### Frontend
-| Technology | Purpose |
-|------------|---------|
-| Next.js 14 | React framework |
-| TypeScript | Type safety |
-| Tailwind CSS | Styling |
-| Zustand | State management |
-| Axios | HTTP client |
-| Framer Motion | Animations |
+### Tech Stack
+- **Frontend**: Next.js 14, TailwindCSS, Framer Motion (animations), Lucide Icons.
+- **Backend**: Node.js/Express, Prisma ORM, Zod (validation).
+- **Database**: SQLite (Dev) / PostgreSQL (Prod).
+- **Auth**: JWT with Access/Refresh tokens.
 
 ---
 
-## Getting Started
+## 🏁 Getting Started
 
 ### Prerequisites
 - Node.js 20+
@@ -72,78 +76,72 @@ matchgame/
 
 ### Installation
 
-```bash
-# Clone the repo
-git clone https://github.com/alexcristofari/Matchgame.git
-cd Matchgame
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/alexcristofari/Matchgame.git
+   cd Matchgame
+   ```
 
-# Install dependencies
-pnpm install
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-# Setup database
-cd packages/database
-npx prisma generate
-npx prisma db push
-cd ../..
-```
+3. **Setup Database**
+   ```bash
+   cd packages/database
+   cp .env.example .env  # Configure your DB URL
+   npx prisma generate
+   npx prisma db push
+   # Optional: Seed with test data
+   npx prisma db seed
+   ```
 
-### Running Locally
-
-```bash
-# Terminal 1 - Backend (port 3001)
-cd apps/backend
-npx tsx src/server.ts
-
-# Terminal 2 - Frontend (port 3000)
-cd apps/web
-pnpm dev
-```
-
-**URLs:**
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
+4. **Run Locally**
+   ```bash
+   # From root
+   pnpm dev
+   # Authentication: http://localhost:3000/auth/login
+   ```
 
 ---
 
-## Recent Updates
+## 📅 Recent Changelog
 
-### Steam Integration
-- Connect Steam account to import game library and playtime.
-- Select favorite games to display on profile.
-- Real-time synchronization with Steam API.
+### Version 0.5.0 - Discovery Update
+- **[Feature] Discovery UI**: Implemented `SwipeCard` with drag gestures (Left/Right/Up) using Framer Motion.
+- **[Feature] Match Logic**: Backend endpoints for `like`, `pass`, and `superlike`. Mutual likes trigger a match.
+- **[Database] New Models**: Added `Like`, `Dislike`, and `Match` models to Prisma schema.
+- **[Fix] Integrations**: Fixed dependency issues with `node-fetch` in integration services.
+- **[Dev] Seeding**: Added `seed.ts` to populate DB with 5 diverse test users (Gamer, Otaku, Cinephile personas).
 
-### Spotify Integration
-- Search and select favorite songs using Spotify API.
-- Select favorite genres from official Spotify list.
-- Display album art and listen to previews.
-- Link to Spotify profile.
-- Fallback system for API stability.
-
-### User Profile
-- Public profile view with customizable bio and location.
-- "Top Pick" game and "Featured Song" embed.
-- Visual display of music taste and game history.
+### Version 0.4.0 - Integrations
+- **[Feature]**: Full Steam and Spotify OAuth flows.
+- **[Feature]**: Manual search for Anime (Jikan API) and Movies (TMDB API).
 
 ---
 
-## Roadmap
+## 🔮 Roadmap & Next Steps
 
-### Next Steps
-- **Matching Algorithm**: Develop compatibility scoring based on common games and genres.
-- **Discovery UI**: Implement swipe/card interface for finding matches.
-- **Real-time Chat**: Messaging system with WebSocket (Socket.io).
-- **More Integrations**: Add support for MyAnimeList and TMDB.
-- **Mobile Responsiveness**: Improve mobile experience for all pages.
+### 🚧 Immediate Goals
+- [ ] **Messaging System**: Real-time chat for matched users (Socket.io).
+- [ ] **Notifications**: In-app alerts for new matches and messages.
+- [ ] **Match Strategy**: Refine recommendation algorithm to prioritize shared interests (weighted scoring).
+
+### 📋 Future Plans
+- **Mobile App**: React Native version for iOS/Android.
+- **Voice Snippets**: Record a 30s audio bio.
+- **Group Matching**: Find groups for raid parties or movie nights.
+- **Events**: "Looking for Group" posts for specific games/events.
 
 ---
 
-## Author
+## 👤 Author
 
 **Alex Cristofari**
 - GitHub: [@alexcristofari](https://github.com/alexcristofari)
 
 ---
 
-## License
-
-This project is private and not licensed for public use.
+## 📄 License
+Private Project.
