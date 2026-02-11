@@ -18,13 +18,19 @@ export class MovieService {
      */
     static async searchMovies(query: string) {
         try {
+            console.log('[MovieService] Search query:', query);
+            console.log('[MovieService] API Key present:', !!this.API_KEY);
+
             if (!this.API_KEY) {
                 console.warn('[MovieService] Missing TMDB_API_KEY');
                 return [];
             }
 
             const url = `${this.API_BASE}/search/movie?api_key=${this.API_KEY}&query=${encodeURIComponent(query)}&language=pt-BR&page=1`;
+            console.log('[MovieService] Fetching:', url.replace(this.API_KEY, '***'));
+
             const response = await fetch(url);
+            console.log('[MovieService] Response status:', response.status);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -33,6 +39,7 @@ export class MovieService {
             }
 
             const data = await response.json() as any;
+            console.log('[MovieService] Found results:', data.results?.length);
 
             return data.results.map((movie: any) => ({
                 id: movie.id,

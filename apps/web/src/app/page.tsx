@@ -2,119 +2,137 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { SteamIcon, SpotifyIcon, AnimeIcon, MovieIcon } from '@/components/Icons';
 
 export default function Home() {
+  const features = [
+    {
+      icon: <SteamIcon className="w-8 h-8 md:w-10 md:h-10 text-[#a855f7]" />,
+      title: "Steam Library",
+      desc: "Connect your library to find players who own the same games.",
+      color: "border-[#a855f7]/20 hover:border-[#a855f7]/50 shadow-[#a855f7]/10"
+    },
+    {
+      icon: <SpotifyIcon className="w-8 h-8 md:w-10 md:h-10 text-[#22c55e]" />,
+      title: "Music Taste",
+      desc: "Match based on top artists and genres you actually listen to.",
+      color: "border-[#22c55e]/20 hover:border-[#22c55e]/50 shadow-[#22c55e]/10"
+    },
+    {
+      icon: <AnimeIcon className="w-8 h-8 md:w-10 md:h-10 text-[#ec4899]" />,
+      title: "Anime Sync",
+      desc: "Find watch buddies with compatible taste in anime genres.",
+      color: "border-[#ec4899]/20 hover:border-[#ec4899]/50 shadow-[#ec4899]/10"
+    },
+    {
+      icon: <MovieIcon className="w-8 h-8 md:w-10 md:h-10 text-[#ef4444]" />,
+      title: "Movie Nights",
+      desc: "Discover people who love the same movies and directors.",
+      color: "border-[#ef4444]/20 hover:border-[#ef4444]/50 shadow-[#ef4444]/10"
+    }
+  ];
+
   return (
-    <main
-      className="min-h-screen relative overflow-hidden flex flex-col"
-      style={{
-        backgroundImage: 'url(/pxfuel1.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Subtle dark overlay */}
-      <div className="absolute inset-0 bg-black/20 z-0" />
+    <main className="min-h-screen bg-[#0d0d0d] text-white selection:bg-white selection:text-black overflow-x-hidden relative">
 
-      {/* Navigation */}
-      <header className="relative z-10 flex items-center justify-between px-8 lg:px-16 py-6">
-        <div className="flex items-center gap-12">
-          <button className="w-6 h-6 flex flex-col justify-center gap-1.5">
-            <span className="w-full h-0.5 bg-white" />
-            <span className="w-4 h-0.5 bg-white" />
-          </button>
-
-          <nav className="hidden md:flex items-center gap-10">
-            <Link href="/" className="nav-link active">Home</Link>
-            <Link href="#about" className="nav-link">About Us</Link>
-            <Link href="#features" className="nav-link">Features</Link>
-            <Link href="#contact" className="nav-link">Contact</Link>
-          </nav>
-        </div>
-
-        <Link href="/auth/login" className="nav-link">
-          Login →
-        </Link>
-      </header>
-
-      {/* Main Content Area */}
-      <div className="relative z-10 flex-1 flex">
-        {/* LEFT - Title */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="w-1/3 flex items-center pl-8 lg:pl-16"
-        >
-          <h1 className="leading-none">
-            <span className="block text-4xl md:text-6xl lg:text-7xl font-light italic text-gray-200 tracking-wide">
-              A New
-            </span>
-            <span className="block text-6xl md:text-8xl lg:text-[12rem] font-black tracking-tighter" style={{ lineHeight: '0.85' }}>
-              WORLD
-            </span>
-            <span className="block text-3xl md:text-5xl lg:text-6xl font-light italic text-gray-300 tracking-wide mt-2">
-              Waiting You
-            </span>
-          </h1>
-        </motion.div>
-
-        {/* CENTER - Empty space for dragon */}
-        <div className="w-1/3" />
-
-        {/* RIGHT - Description */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="w-1/3 flex items-center justify-end pr-8 lg:pr-16"
-        >
-          <div className="text-right max-w-sm">
-            <p className="text-lg md:text-xl font-semibold tracking-[3px] uppercase text-white mb-4">
-              Explore Your Dream..
-            </p>
-            <p className="text-sm md:text-base text-gray-300 leading-relaxed">
-              Connect with gamers who share your taste in games, music,
-              movies, and anime. Match based on what you actually play and watch.
-            </p>
-          </div>
-        </motion.div>
+      {/* Background Ambience */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-purple-900/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-blue-900/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '10s' }} />
       </div>
 
-      {/* BOTTOM - Get Started Button (centered below dragon) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="relative z-10 flex justify-center pb-28"
-      >
-        <Link href="/auth/register" className="btn-primary text-base px-10 py-4">
-          Get Started
-        </Link>
-      </motion.div>
+      {/* Navigation */}
+      <header className="relative z-50 px-6 md:px-12 py-6 flex items-center justify-between">
+        <div className="text-xl font-bold tracking-tighter">MATCHGAME</div>
+        <div className="flex items-center gap-6">
+          <Link href="/auth/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+            LOGIN
+          </Link>
+          <Link href="/auth/register" className="px-5 py-2 rounded-full border border-white/20 text-sm font-medium hover:bg-white hover:text-black transition-all">
+            JOIN NOW
+          </Link>
+        </div>
+      </header>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-8 lg:px-16 py-4 border-t border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xl">🎮</span>
-            <p className="text-sm text-gray-400 hidden sm:block">
-              Match with gamers who share your interests
-            </p>
-          </div>
+      {/* Hero Section */}
+      <section className="relative z-10 min-h-[85vh] flex flex-col items-center justify-center px-6 text-center">
 
-          <p className="text-sm text-gray-500">
-            © MatchGame 2026
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative"
+        >
+          {/* Decorative line */}
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 60 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1px] bg-gradient-to-b from-transparent to-white/50"
+          />
+
+          <h1 className="flex flex-col items-center leading-none tracking-tighter mb-8">
+            <span className="text-[12vw] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
+              CONNECT.
+            </span>
+            <span className="text-[12vw] md:text-[8rem] font-light italic text-white/80 -mt-[2vw] md:-mt-8 z-10">
+              VIBE.
+            </span>
+            <span className="text-[12vw] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 -mt-[2vw] md:-mt-8">
+              MATCH.
+            </span>
+          </h1>
+
+          <p className="max-w-md mx-auto text-gray-400 text-lg md:text-xl font-light mb-10 leading-relaxed">
+            The ultimate matchmaking platform for gamers, audiophiles, and binge-watchers.
           </p>
 
-          <div className="hidden sm:flex items-center gap-3">
-            <a href="#" className="social-icon">f</a>
-            <a href="#" className="social-icon">X</a>
-            <a href="#" className="social-icon">in</a>
-          </div>
+          <Link href="/auth/register" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-bold tracking-wide hover:scale-105 transition-transform">
+            <span>START YOUR JOURNEY</span>
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
+          </Link>
+
+        </motion.div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="relative z-10 py-24 px-6 md:px-12 bg-[#0d0d0d]/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {features.map((feature, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={`p-6 rounded-2xl border bg-[#141414] ${feature.color} transition-all hover:shadow-2xl hover:-translate-y-1 group cursor-default`}
+              >
+                <div className="mb-6 opacity-80 group-hover:opacity-100 transition-opacity transform group-hover:scale-110 duration-300 origin-left">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">{feature.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed font-light">
+                  {feature.desc}
+                </p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-12 px-6 border-t border-white/5 text-center">
+        <p className="text-sm text-gray-500 font-mono">
+          © 2026 MATCHGAME. ALL RIGHTS RESERVED.
+        </p>
       </footer>
+
     </main>
   );
 }
