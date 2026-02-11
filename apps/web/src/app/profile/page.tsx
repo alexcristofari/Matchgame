@@ -12,8 +12,8 @@ export default function ProfilePage() {
     const [favorites, setFavorites] = useState<{ appid: number; name: string; iconUrl?: string }[]>([]);
     const [steamData, setSteamData] = useState<{ connected: boolean; profile?: { profileurl: string; personaname: string }; steamId?: string } | null>(null);
     const [spotifyData, setSpotifyData] = useState<{ profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: { name: string; artist: string; url: string; imageUrl?: string }[] } | null>(null);
-    const [animeData, setAnimeData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
-    const [movieData, setMovieData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
+    const [animeData, setAnimeData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[]; profileUrl?: string } | null>(null);
+    const [movieData, setMovieData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[]; profileUrl?: string } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -332,6 +332,11 @@ export default function ProfilePage() {
                 >
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                         <span className="text-pink-400">📺</span> Anime Favorites
+                        {animeData?.profileUrl && (
+                            <a href={animeData.profileUrl} target="_blank" className="ml-auto text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1">
+                                MyAnimeList Profile ↗
+                            </a>
+                        )}
                     </h2>
 
                     {/* Anime Genres */}
@@ -385,6 +390,11 @@ export default function ProfilePage() {
                 >
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                         <span className="text-red-400">🎬</span> Movie Favorites
+                        {movieData?.profileUrl && (
+                            <a href={movieData.profileUrl} target="_blank" className="ml-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                                TMDB Profile ↗
+                            </a>
+                        )}
                     </h2>
 
                     {/* Movie Genres */}

@@ -62,7 +62,8 @@ export default function DashboardPage() {
     const [showAnimeModal, setShowAnimeModal] = useState(false);
     const [animeData, setAnimeData] = useState({
         genres: [] as string[],
-        favorites: [] as { id: number; title: string; imageUrl: string }[]
+        favorites: [] as { id: number; title: string; imageUrl: string }[],
+        profileUrl: ''
     });
     const [availableAnimeGenres, setAvailableAnimeGenres] = useState<string[]>([]);
     const [animeSearchQuery, setAnimeSearchQuery] = useState('');
@@ -73,7 +74,8 @@ export default function DashboardPage() {
     const [showMovieModal, setShowMovieModal] = useState(false);
     const [movieData, setMovieData] = useState({
         genres: [] as string[],
-        favorites: [] as { id: number; title: string; imageUrl: string }[]
+        favorites: [] as { id: number; title: string; imageUrl: string }[],
+        profileUrl: ''
     });
     const [availableMovieGenres, setAvailableMovieGenres] = useState<string[]>([]);
     const [movieSearchQuery, setMovieSearchQuery] = useState('');
@@ -211,10 +213,23 @@ export default function DashboardPage() {
 
     // Anime Handlers
     useEffect(() => {
-        if (showAnimeModal && availableAnimeGenres.length === 0) {
-            integrationsApi.getAnimeGenres().then(res => {
-                if (res.success) setAvailableAnimeGenres(res.data);
-            });
+        if (showAnimeModal) {
+            // Load existing data
+            integrationsApi.getAnime().then(res => {
+                if (res.success && res.data && res.data.connected) {
+                    setAnimeData({
+                        genres: res.data.genres || [],
+                        favorites: res.data.favorites || [],
+                        profileUrl: res.data.profileUrl || ''
+                    });
+                }
+            }).catch(() => { });
+
+            if (availableAnimeGenres.length === 0) {
+                integrationsApi.getAnimeGenres().then(res => {
+                    if (res.success) setAvailableAnimeGenres(res.data);
+                });
+            }
         }
     }, [showAnimeModal]);
 
@@ -293,10 +308,23 @@ export default function DashboardPage() {
 
     // Movie Handlers
     useEffect(() => {
-        if (showMovieModal && availableMovieGenres.length === 0) {
-            integrationsApi.getMovieGenres().then(res => {
-                if (res.success) setAvailableMovieGenres(res.data);
-            });
+        if (showMovieModal) {
+            // Load existing data
+            integrationsApi.getMovie().then(res => {
+                if (res.success && res.data && res.data.connected) {
+                    setMovieData({
+                        genres: res.data.genres || [],
+                        favorites: res.data.favorites || [],
+                        profileUrl: res.data.profileUrl || ''
+                    });
+                }
+            }).catch(() => { });
+
+            if (availableMovieGenres.length === 0) {
+                integrationsApi.getMovieGenres().then(res => {
+                    if (res.success) setAvailableMovieGenres(res.data);
+                });
+            }
         }
     }, [showMovieModal]);
 
@@ -982,6 +1010,18 @@ export default function DashboardPage() {
                             <h2 className="text-xl font-bold mb-4">📺 Seus Animes Favoritos</h2>
 
                             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                                {/* Profile Link */}
+                                <div>
+                                    <label className="text-sm text-gray-400 block mb-2">Link do seu Perfil MyAnimeList (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://myanimelist.net/profile/..."
+                                        value={animeData.profileUrl}
+                                        onChange={e => setAnimeData(prev => ({ ...prev, profileUrl: e.target.value }))}
+                                        className="input w-full"
+                                    />
+                                </div>
+
                                 {/* Genres Selection */}
                                 <div>
                                     <div className="flex justify-between items-center mb-2">
@@ -1100,6 +1140,18 @@ export default function DashboardPage() {
                             <h2 className="text-xl font-bold mb-4">🎬 Seus Filmes Favoritos</h2>
 
                             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                                {/* Profile Link */}
+                                <div>
+                                    <label className="text-sm text-gray-400 block mb-2">Link do seu Perfil TMDB / Letterboxd (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="https://www.themoviedb.org/u/..."
+                                        value={movieData.profileUrl}
+                                        onChange={e => setMovieData(prev => ({ ...prev, profileUrl: e.target.value }))}
+                                        className="input w-full"
+                                    />
+                                </div>
+
                                 {/* Genres Selection */}
                                 <div>
                                     <div className="flex justify-between items-center mb-2">

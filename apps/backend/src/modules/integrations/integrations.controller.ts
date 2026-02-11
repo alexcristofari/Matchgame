@@ -444,7 +444,7 @@ integrationsRouter.get('/anime/genres', authenticate, async (req: Request, res: 
 integrationsRouter.put('/anime/manual', authenticate, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { genres, favorites } = req.body;
+        const { genres, favorites, profileUrl } = req.body;
 
         // Validation
         if (genres && (!Array.isArray(genres) || genres.length > 3)) {
@@ -466,6 +466,7 @@ integrationsRouter.put('/anime/manual', authenticate, async (req: Request, res: 
             manual: true,
             genres: genres || [],
             favorites: favorites || [], // { id, title, imageUrl }
+            profileUrl,
             updatedAt: new Date().toISOString()
         };
 
@@ -545,7 +546,7 @@ integrationsRouter.get('/movie/genres', authenticate, async (req: Request, res: 
 integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { genres, favorites } = req.body;
+        const { genres, favorites, profileUrl } = req.body;
 
         // Validation
         if (genres && (!Array.isArray(genres) || genres.length > 3)) {
@@ -567,6 +568,7 @@ integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: 
             manual: true,
             genres: genres || [],
             favorites: favorites || [], // { id, title, imageUrl }
+            profileUrl,
             updatedAt: new Date().toISOString()
         };
 
