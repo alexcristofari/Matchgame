@@ -10,6 +10,7 @@ export default function ProfilePage() {
     const { user, isAuthenticated } = useAuthStore();
     const [profile, setProfile] = useState<{ bio?: string; location?: string; birthDate?: string; lookingFor?: string } | null>(null);
     const [favorites, setFavorites] = useState<{ appid: number; name: string; iconUrl?: string }[]>([]);
+    const [steamData, setSteamData] = useState<{ connected: boolean; profile?: { profileurl: string; personaname: string }; steamId?: string } | null>(null);
     const [spotifyData, setSpotifyData] = useState<{ profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: { name: string; artist: string; url: string; imageUrl?: string }[] } | null>(null);
     const [animeData, setAnimeData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
     const [movieData, setMovieData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[] } | null>(null);
@@ -20,9 +21,10 @@ export default function ProfilePage() {
             if (!isAuthenticated) return;
             try {
                 // Parallel requests
-                const [profileRes, favoritesRes, spotifyRes, animeRes, movieRes] = await Promise.all([
+                const [profileRes, favoritesRes, steamRes, spotifyRes, animeRes, movieRes] = await Promise.all([
                     profilesApi.getMyProfile().catch(() => ({ success: false, data: null })),
                     integrationsApi.getFavoriteGames().catch(() => ({ success: false, data: [] })),
+                    integrationsApi.getSteam().catch(() => ({ success: false, data: null })),
                     integrationsApi.getSpotify().catch(() => ({ success: false, data: null })),
                     integrationsApi.getAnime().catch(() => ({ success: false, data: null })),
                     integrationsApi.getMovie().catch(() => ({ success: false, data: null }))
@@ -35,6 +37,10 @@ export default function ProfilePage() {
                         name: f.name,
                         iconUrl: f.iconUrl
                     })));
+                }
+
+                if (steamRes.success && steamRes.data) {
+                    setSteamData(steamRes.data);
                 }
 
                 if (spotifyRes.success && spotifyRes.data) {
@@ -161,10 +167,25 @@ export default function ProfilePage() {
                 >
                     <h2 className="text-2xl font-bold flex items-center gap-2">
                         <span className="text-purple-400">🎮</span> Favorite Games
+                        {steamData?.profile?.profileurl && (
+                            <a href={steamData.profile.profileurl} target="_blank" className="ml-auto text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                                Steam Profile ↗
+                            </a>
+                        )}
+                        {!steamData?.profile?.profileurl && steamData?.connected && steamData?.steamId && (
+                            <a href={`https://steamcommunity.com/profiles/${steamData.steamId}`} target="_blank" className="ml-auto text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                                Steam Profile ↗
+                            </a>
+                        )}
                     </h2>
 
                     {mainGame ? (
-                        <div className="relative group rounded-2xl overflow-hidden aspect-video bg-[#1a1a1a] border border-white/10">
+                        <a
+                            href={`https://store.steampowered.com/app/${mainGame.appid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative group rounded-2xl overflow-hidden aspect-video bg-[#1a1a1a] border border-white/10 block cursor-pointer transition-transform hover:scale-[1.02]"
+                        >
                             {mainGame.iconUrl ? (
                                 <img
                                     src={mainGame.iconUrl}
@@ -184,8 +205,9 @@ export default function ProfilePage() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 flex flex-col justify-end">
                                 <span className="text-purple-400 text-sm font-bold uppercase tracking-wider mb-1">Top Pick</span>
                                 <h3 className="text-3xl font-bold">{mainGame.name}</h3>
+                                <span className="absolute top-4 right-4 text-[10px] bg-sky-600 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold tracking-wide">STEAM ↗</span>
                             </div>
-                        </div>
+                        </a>
                     ) : (
                         <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
                             <p className="text-gray-400">No favorite games selected</p>
@@ -198,7 +220,13 @@ export default function ProfilePage() {
                     {otherGames.length > 0 && (
                         <div className="grid grid-cols-2 gap-4">
                             {otherGames.map(game => (
-                                <div key={game.appid} className="bg-[#1a1a1a] p-3 rounded-xl border border-white/5 hover:border-white/20 transition-all flex items-center gap-3">
+                                <a
+                                    key={game.appid}
+                                    href={`https://store.steampowered.com/app/${game.appid}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-[#1a1a1a] p-3 rounded-xl border border-white/5 hover:border-white/20 transition-all flex items-center gap-3 block hover:bg-white/5 group"
+                                >
                                     {game.iconUrl && (
                                         <img
                                             src={game.iconUrl}
@@ -206,8 +234,9 @@ export default function ProfilePage() {
                                             className="w-10 h-10 rounded-lg bg-[#252525]"
                                         />
                                     )}
-                                    <span className="font-medium text-sm truncate">{game.name}</span>
-                                </div>
+                                    <span className="font-medium text-sm truncate flex-1">{game.name}</span>
+                                    <span className="text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
+                                </a>
                             ))}
                         </div>
                     )}
@@ -318,7 +347,13 @@ export default function ProfilePage() {
                     {animeData?.favorites && animeData.favorites.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {animeData.favorites.map((anime) => (
-                                <div key={anime.id} className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all">
+                                <a
+                                    key={anime.id}
+                                    href={`https://myanimelist.net/anime/${anime.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all block cursor-pointer"
+                                >
                                     {anime.imageUrl ? (
                                         <img src={anime.imageUrl} alt={anime.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                     ) : (
@@ -326,8 +361,9 @@ export default function ProfilePage() {
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                                         <span className="text-sm font-bold text-white line-clamp-2">{anime.title}</span>
+                                        <span className="absolute top-2 right-2 text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">MAL ↗</span>
                                     </div>
-                                </div>
+                                </a>
                             ))}
                         </div>
                     ) : (
@@ -364,7 +400,13 @@ export default function ProfilePage() {
                     {movieData?.favorites && movieData.favorites.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {movieData.favorites.map((movie) => (
-                                <div key={movie.id} className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all">
+                                <a
+                                    key={movie.id}
+                                    href={`https://www.themoviedb.org/movie/${movie.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all block cursor-pointer"
+                                >
                                     {movie.imageUrl ? (
                                         <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                     ) : (
@@ -372,8 +414,9 @@ export default function ProfilePage() {
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                                         <span className="text-sm font-bold text-white line-clamp-2">{movie.title}</span>
+                                        <span className="absolute top-2 right-2 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">TMDB ↗</span>
                                     </div>
-                                </div>
+                                </a>
                             ))}
                         </div>
                     ) : (
