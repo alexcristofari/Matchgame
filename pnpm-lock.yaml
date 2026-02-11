@@ -20,6 +20,9 @@ importers:
       '@matchgame/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      axios:
+        specifier: ^1.13.5
+        version: 1.13.5
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -133,10 +136,19 @@ importers:
       '@prisma/client':
         specifier: ^5.10.0
         version: 5.22.0(prisma@5.22.0)
+      axios:
+        specifier: ^1.13.5
+        version: 1.13.5
     devDependencies:
+      '@types/bcryptjs':
+        specifier: ^2.4.6
+        version: 2.4.6
       '@types/node':
         specifier: ^25.2.2
         version: 25.2.2
+      bcryptjs:
+        specifier: ^2.4.3
+        version: 2.4.3
       prisma:
         specifier: ^5.10.0
         version: 5.22.0

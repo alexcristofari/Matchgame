@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ interface SwipeCardProps {
 
 export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
     const [exitX, setExitX] = useState<number | null>(null);
+    const [showDetails, setShowDetails] = useState(false);
 
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -37,9 +39,21 @@ export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
     if (!active) return null;
 
     // Photos logic
-    const photoUrl = user.photos && user.photos.length > 0
-        ? user.photos[0]
-        : 'https://via.placeholder.com/400x600?text=No+Photo';
+    const sanitizeName = (name: string) => name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+
+    let photoUrl = 'https://via.placeholder.com/400x600?text=No+Photo';
+
+    if (user.photos && user.photos.length > 0) {
+        const originalUrl = user.photos[0];
+        // Use local files if possible
+        if (originalUrl.includes('api.dicebear.com')) {
+            photoUrl = `/avatars/${sanitizeName(user.name)}.svg`;
+        } else if (originalUrl.includes('wikimedia') || originalUrl.includes('dropbox') || originalUrl.includes('imgur')) {
+            photoUrl = `/avatars/${sanitizeName(user.name)}.jpg`;
+        } else {
+            photoUrl = originalUrl;
+        }
+    }
 
     return (
         <motion.div
@@ -54,13 +68,39 @@ export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
             className="absolute top-0 left-0 w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-zinc-900 cursor-grab active:cursor-grabbing border border-white/10"
         >
             {/* Image */}
-            <div
-                className="absolute inset-0 bg-cover bg-center pointer-events-none"
-                style={{ backgroundImage: `url(${photoUrl})` }}
+            <img
+                src={photoUrl}
+                alt={user.name}
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                draggable={false}
+                onError={(e) => {
+                    const target = e.currentTarget;
+                    const src = target.src;
+
+                    // Try alternatives if initial load fails
+                    if (src.endsWith('.svg')) {
+                        // Sometimes we expect SVG but it might be JPG (e.g. manual replace)
+                        target.src = src.replace('.svg', '.jpg');
+                    } else if (src.endsWith('.jpg')) {
+                        // User might have saved as .jpeg
+                        target.src = src.replace('.jpg', '.jpeg');
+                    } else if (src.endsWith('.jpeg')) {
+                        // User might have saved as .png
+                        target.src = src.replace('.jpeg', '.png');
+                    } else if (src.endsWith('.png')) {
+                        // Or webp
+                        target.src = src.replace('.png', '.webp');
+                    } else {
+                        // Only fallback to placeholder if all formats fail
+                        if (!src.includes('placeholder')) {
+                            target.src = 'https://via.placeholder.com/600x800?text=Image+Offline';
+                        }
+                    }
+                }}
             />
 
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
+            <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none transition-all duration-300 ${showDetails ? 'from-black/90 via-black/80' : ''}`} />
 
             {/* Stamps */}
             <motion.div
@@ -78,37 +118,59 @@ export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
             </motion.div>
 
             {/* Info */}
-            <div className="absolute bottom-0 left-0 w-full p-6 text-white pointer-events-none z-10 bg-gradient-to-t from-black to-transparent pt-20">
-                <div className="flex items-end gap-3 mb-2">
-                    <h2 className="text-3xl font-bold">{user.name}</h2>
-                    <span className="text-xl font-medium opacity-80">{user.age}</span>
-                </div>
-
-                {user.location && (
-                    <div className="flex items-center gap-1 text-sm opacity-70 mb-3">
-                        <span>📍</span>
-                        <span>{user.location}</span>
+            <div className="absolute bottom-0 left-0 w-full p-6 text-white z-10 pt-20">
+                <div
+                    className="cursor-pointer"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDetails(!showDetails);
+                    }}
+                >
+                    <div className="flex items-end justify-between mb-2">
+                        <div className="flex items-end gap-3">
+                            <h2 className="text-3xl font-bold leading-none">{user.name}</h2>
+                            <span className="text-xl font-medium opacity-80 leading-none">{user.age}</span>
+                        </div>
+                        <button className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors pointer-events-auto">
+                            {showDetails ? 'Hide Info' : 'More Info'}
+                        </button>
                     </div>
-                )}
 
-                {user.bio && (
-                    <p className="text-sm opacity-80 line-clamp-2 mb-4">
-                        {user.bio}
-                    </p>
-                )}
-
-                {/* Top Interests */}
-                <div className="flex gap-2">
-                    {user.topGame && (
-                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
-                            <span>🎮</span>
-                            <span className="truncate max-w-[100px]">{user.topGame.name}</span>
+                    {user.location && (
+                        <div className="flex items-center gap-1 text-sm opacity-70 mb-3">
+                            <span>📍</span>
+                            <span>{user.location}</span>
                         </div>
                     )}
-                    {user.topSong && (
-                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
-                            <span>🎵</span>
-                            <span className="truncate max-w-[100px]">{user.topSong.name}</span>
+
+                    <div className={`text-sm opacity-80 mb-4 transition-all duration-300 ${showDetails ? 'max-h-[300px] overflow-y-auto' : 'line-clamp-2'}`}>
+                        {user.bio}
+                        {showDetails && (
+                            <div className="mt-4 pt-4 border-t border-white/10 pointer-events-auto cursor-text" onPointerDown={(e) => e.stopPropagation()}>
+                                <p className="text-xs text-gray-400 mb-2">FULL DEBUG DATA:</p>
+                                <pre className="text-[10px] bg-black/50 p-2 rounded overflow-x-auto select-text">
+                                    {JSON.stringify(user, null, 2)}
+                                </pre>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Top Interests */}
+                    {!showDetails && (
+                        <div className="flex gap-2">
+                            {user.topGame && (
+                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
+                                    <span>🎮</span>
+                                    <span className="truncate max-w-[100px]">{user.topGame.name}</span>
+                                </div>
+                            )}
+                            {user.topSong && (
+                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
+                                    <span>🎵</span>
+                                    <span className="truncate max-w-[100px]">{user.topSong.name}</span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

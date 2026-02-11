@@ -1,0 +1,630 @@
+[
+    {
+        "name": "Ana De Armas",
+        "email": "ana_de_armas@matchgame.dev",
+        "age": 25,
+        "bio": "Voce parece cansado...",
+        "location": "Cuba",
+        "gender": "female",
+        "images": [
+            "/avatars/ana_de_armas.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Cyberpunk 2077"
+            ],
+            "music": [
+                "Pop"
+            ],
+            "movies": [
+                "Blade Runner 2049"
+            ]
+        }
+    },
+    {
+        "name": "Andrew Tate",
+        "email": "top.g@matchgame.dev",
+        "age": 37,
+        "bio": "Fuck women, fuck the system, fuck the matrix",
+        "location": "Bucharest, RO",
+        "gender": "male",
+        "images": [
+            "/avatars/andrew_tate.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Chess",
+                "UFC 5"
+            ],
+            "music": [
+                "Phonk",
+                "Sigma Male Grindset Playlist"
+            ],
+            "movies": [
+                "The Matrix",
+                "Fight Club"
+            ]
+        }
+    },
+    {
+        "name": "Cachorro Chupetao",
+        "email": "chupetao@matchgame.dev",
+        "age": 5,
+        "bio": "TUC TUC TUC TUC",
+        "location": "Xique-Xique, BA",
+        "gender": "male",
+        "images": [
+            "/avatars/cachorro_chupetao.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Nintendogs",
+                "Paw Patrol"
+            ],
+            "music": [
+                "Músicas Infantis"
+            ],
+            "movies": [
+                "Bolt",
+                "Scooby-Doo"
+            ]
+        }
+    },
+    {
+        "name": "Charlie Kirk",
+        "email": "small.face@matchgame.dev",
+        "age": 30,
+        "bio": "WE ARE CHARLIE KIRK",
+        "location": "USA",
+        "gender": "male",
+        "images": [
+            "/avatars/charlie_kirk.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Debate Simulator",
+                "Among Us"
+            ],
+            "music": [
+                "Country"
+            ],
+            "movies": [
+                "God's Not Dead"
+            ]
+        }
+    },
+    {
+        "name": "Diddy",
+        "email": "diddy@matchgame.dev",
+        "age": 25,
+        "bio": "I'm back",
+        "location": "Los Santos, CA",
+        "gender": "male",
+        "images": [
+            "/avatars/diddy.png"
+        ],
+        "interests": {
+            "games": [
+                "Grand Theft Auto V"
+            ],
+            "music": [
+                "Hip Hop"
+            ],
+            "movies": [
+                "Goodfellas"
+            ]
+        }
+    },
+    {
+        "name": "Donald J. Trump",
+        "email": "real.donald@matchgame.dev",
+        "age": 78,
+        "bio": "Make MatchGame Great Again. FAKE NEWS media lies about my K/D ratio.",
+        "location": "Mar-a-Lago, FL",
+        "gender": "male",
+        "images": [
+            "/avatars/donald_j__trump.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Monopoly",
+                "Civilization VI",
+                "Tropico 6"
+            ],
+            "music": [
+                "Y.M.C.A.",
+                "Macho Man",
+                "Frank Sinatra"
+            ],
+            "movies": [
+                "Wall Street",
+                "Citizen Kane",
+                "Home Alone 2"
+            ]
+        }
+    },
+    {
+        "name": "Dwight Schrute",
+        "email": "assistant.to.regional@matchgame.dev",
+        "age": 40,
+        "bio": "Pelo menos o VIADO do Jim não ta aqui",
+        "location": "Schrute Farms",
+        "gender": "male",
+        "images": [
+            "/avatars/dwight_schrute.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Second Life",
+                "StarCraft"
+            ],
+            "music": [
+                "Rammstein",
+                "Heavy Metal"
+            ],
+            "movies": [
+                "Battlestar Galactica",
+                "O Poderoso Chefão"
+            ]
+        }
+    },
+    {
+        "name": "Egirl",
+        "email": "egirl@matchgame.dev",
+        "age": 25,
+        "bio": "Sou prata 2 no Lol, faco mewing nas horas vagas, e sou mt boa em decepcionar meus pais",
+        "location": "Discord",
+        "gender": "female",
+        "images": [
+            "/avatars/egirl.jpg"
+        ],
+        "interests": {
+            "games": [
+                "League of Legends",
+                "Valorant"
+            ],
+            "music": [
+                "K-Pop",
+                "Pop"
+            ],
+            "movies": [
+                "Donnie Darko",
+                "A Viagem de Chihiro"
+            ]
+        }
+    },
+    {
+        "name": "Elon Musk",
+        "email": "elon.mars@matchgame.dev",
+        "age": 53,
+        "bio": "Mars or bust. 🚀 CEO de tudo. Diablo IV sorcerer nível 100. Se você não trabalha 120 horas por semana, swipe left.",
+        "location": "Boca Chica, TX",
+        "gender": "male",
+        "images": [
+            "/avatars/elon_musk.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Diablo IV",
+                "Elden Ring",
+                "Kerbal Space Program",
+                "Cyberpunk 2077"
+            ],
+            "music": [
+                "Grimes",
+                "EDM",
+                "Techno"
+            ],
+            "anime": [
+                "Neon Genesis Evangelion",
+                "Gundam",
+                "Your Name"
+            ]
+        }
+    },
+    {
+        "name": "Erick Cabral (Bagra)",
+        "email": "erick.bagra@matchgame.dev",
+        "age": 24,
+        "bio": "herdeiro, fluente em 6 linguas, amante de musica e da setima arte, vi 1600 animes, souprodutor de musica e bato um league as vezes. :)",
+        "location": "São Paulo, SP",
+        "gender": "male",
+        "images": [
+            "/avatars/erick_cabral__bagra_.svg"
+        ],
+        "interests": {
+            "games": [
+                "League of Legends",
+                "Dota 2",
+                "Remnant 2"
+            ],
+            "music": [
+                "Metalcore",
+                "Rock",
+                "Pop"
+            ],
+            "anime": [
+                "One Piece",
+                "Naruto",
+                "Attack on Titan",
+                "Fullmetal Alchemist",
+                "Steins;Gate"
+            ],
+            "movies": [
+                "Pulp Fiction",
+                "Interstellar",
+                "The Godfather"
+            ]
+        }
+    },
+    {
+        "name": "Esqueleto",
+        "email": "esqueleto@matchgame.dev",
+        "age": 25,
+        "bio": "AQUI E ROCK PORRA SE VC N CURTE ROCK SAI DA MINHA FRENTE",
+        "location": "Unknown",
+        "gender": "unknown",
+        "images": [
+            "/avatars/esqueleto.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Edit Me"
+            ],
+            "music": [
+                "Edit Me"
+            ],
+            "movies": [
+                "Edit Me"
+            ]
+        }
+    },
+    {
+        "name": "Faria Limer",
+        "email": "farialimer@matchgame.dev",
+        "age": 28,
+        "bio": "Work hard, play hard. Crossfit as 5am. Beach Tennis fds. Copo Stanley na mão. NFT e Cripto. Mindset de crescimento.",
+        "location": "Itaim Bibi, SP",
+        "gender": "male",
+        "images": [
+            "/avatars/faria_limer.svg"
+        ],
+        "interests": {
+            "games": [
+                "Axie Infinity",
+                "The Sandbox",
+                "FIFA 24"
+            ],
+            "music": [
+                "Alok",
+                "Vintage Culture"
+            ],
+            "movies": [
+                "O Lobo de Wall Street",
+                "Billions"
+            ]
+        }
+    },
+    {
+        "name": "J.K. Rowling",
+        "email": "jk.rolling@matchgame.dev",
+        "age": 59,
+        "bio": "Comi merda e ainda assim continuo sendo uma escritora de sucesso",
+        "location": "Edinburgh, UK",
+        "gender": "female",
+        "images": [
+            "/avatars/j_k__rowling.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Hogwarts Legacy",
+                "LEGO Harry Potter"
+            ],
+            "music": [
+                "The Smiths",
+                "Morrissey",
+                "Siouxsie and the Banshees"
+            ],
+            "movies": [
+                "Fantastic Beasts",
+                "The Prime of Miss Jean Brodie"
+            ]
+        }
+    },
+    {
+        "name": "Jair Bolsonaro",
+        "email": "mito.capitao@matchgame.dev",
+        "age": 69,
+        "bio": "Brasil acima de tudo, Deus acima de todos. Talkey? Histórico de atleta. Imorrível, imbrochável, incomível.",
+        "location": "Orlando, FL",
+        "gender": "male",
+        "images": [
+            "/avatars/jair_bolsonaro.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Call of Duty",
+                "Sniper Elite"
+            ],
+            "music": [
+                "Hino Nacional"
+            ],
+            "movies": [
+                "Tropa de Elite",
+                "O Patriota"
+            ]
+        }
+    },
+    {
+        "name": "Jeffrey Epstein",
+        "email": "island.guy@matchgame.dev",
+        "age": 66,
+        "bio": "Investidor. Gosto de ilhas particulares e aviões. Não me pergunte sobre a lista. Certamente não sou pedófilo.",
+        "location": "Little St. James",
+        "gender": "male",
+        "images": [
+            "/avatars/jeffrey_epstein.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Microsoft Flight Simulator",
+                "SimCity 4",
+                "The Sims"
+            ],
+            "music": [
+                "Classical",
+                "Opera"
+            ],
+            "movies": [
+                "Lolita",
+                "Pretty Baby"
+            ]
+        }
+    },
+    {
+        "name": "Kanye West",
+        "email": "kanye_west@matchgame.dev",
+        "age": 25,
+        "bio": "GOD'S FAVORITE",
+        "location": "Chicago, IL",
+        "gender": "male",
+        "images": [
+            "/avatars/kanye_west.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Edit Me"
+            ],
+            "music": [
+                "Edit Me"
+            ],
+            "movies": [
+                "Edit Me"
+            ]
+        }
+    },
+    {
+        "name": "Lazaro",
+        "email": "lazaro@matchgame.dev",
+        "age": 25,
+        "bio": "...",
+        "location": "Unknown",
+        "gender": "male",
+        "images": [
+            "/avatars/lazaro.jpg"
+        ],
+        "interests": {
+            "games": [
+                "GTA 5"
+            ],
+            "music": [
+                "Funk"
+            ],
+            "movies": [
+                "Fast & Furious"
+            ]
+        }
+    },
+    {
+        "name": "Lucas Inutilsmo",
+        "email": "lucas_inutilsmo@matchgame.dev",
+        "age": 25,
+        "bio": "Esse ano nao vai ter retrospectiva fellas",
+        "location": "São Paulo, SP",
+        "gender": "male",
+        "images": [
+            "/avatars/lucas_inutilsmo.jpg"
+        ],
+        "interests": {
+            "games": [
+                "League of Legends"
+            ],
+            "music": [
+                "as minhas musicas"
+            ],
+            "movies": [
+                "Interstellar"
+            ]
+        }
+    },
+    {
+        "name": "Lula",
+        "email": "lula.star@matchgame.dev",
+        "age": 78,
+        "bio": "Companheiro! Picanha e cervejinha para todos. O amor venceu.",
+        "location": "Brasília, DF",
+        "gender": "male",
+        "images": [
+            "/avatars/lula.jpg"
+        ],
+        "interests": {
+            "games": [
+                "SimCity",
+                "Tropico 6"
+            ],
+            "music": [
+                "Chico Buarque",
+                "Gilberto Gil"
+            ],
+            "movies": [
+                "Central do Brasil",
+                "Bacurau"
+            ]
+        }
+    },
+    {
+        "name": "Mark Zuckerberg",
+        "email": "zuck.meta@matchgame.dev",
+        "age": 40,
+        "bio": "Human (definitivamente). O Metaverso é o futuro, por favor concordem.",
+        "location": "Palo Alto, CA",
+        "gender": "male",
+        "images": [
+            "/avatars/mark_zuckerberg.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Civilization V",
+                "Beat Saber",
+                "Horizon Worlds"
+            ],
+            "music": [
+                "Daft Punk",
+                "Green Day"
+            ],
+            "movies": [
+                "The Social Network"
+            ]
+        }
+    },
+    {
+        "name": "Michael Scott",
+        "email": "worlds.best.boss@matchgame.dev",
+        "age": 45,
+        "bio": "Foi o que ela disse",
+        "location": "Scranton, PA",
+        "gender": "male",
+        "images": [
+            "/avatars/michael_scott.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Call of Duty (Second Life)",
+                "Solitaire"
+            ],
+            "music": [
+                "Beyoncé",
+                "Lady Gaga"
+            ],
+            "movies": [
+                "Threat Level Midnight",
+                "Die Hard"
+            ]
+        }
+    },
+    {
+        "name": "Oppenheimer",
+        "email": "destroyer.worlds@matchgame.dev",
+        "age": 50,
+        "bio": "BOMBA!",
+        "location": "Los Alamos, NM",
+        "gender": "male",
+        "images": [
+            "/avatars/oppenheimer.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Fallout 4",
+                "DEFCON"
+            ],
+            "music": [
+                "Ludwig Göransson",
+                "Classical"
+            ],
+            "movies": [
+                "Oppenheimer",
+                "Dr. Strangelove"
+            ]
+        }
+    },
+    {
+        "name": "Patrick Bateman",
+        "email": "sigma.pat@matchgame.dev",
+        "age": 27,
+        "bio": "Investimentos e aquisições. Gosto de Huey Lewis and the News. Tenho uma rotina de pele impecável. Vamos ver o cartão do Paul Allen.",
+        "location": "New York, NY",
+        "gender": "male",
+        "images": [
+            "/avatars/patrick_bateman.jpg"
+        ],
+        "interests": {
+            "games": [
+                "Hitman 3",
+                "Manhunt"
+            ],
+            "music": [
+                "Huey Lewis and the News",
+                "Phil Collins",
+                "Whitney Houston"
+            ],
+            "movies": [
+                "American Psycho",
+                "Texas Chainsaw Massacre"
+            ]
+        }
+    },
+    {
+        "name": "Vitor Oliveira Vtx",
+        "email": "vitor_oliveira__vtx@matchgame.dev",
+        "age": 25,
+        "bio": "Hacker etico, sou a personificaçao das sombras nao gosto de pessoas pf nao me dirijam a palavra exceto mulheres, joguei lol por mt tempo e aprendi sobre o pior da humanidade, otp zed season 5, average singed enjoyer, atualmente estou aposentado do lol mas ainda faço trabalhos rs preço dm, tenho experiencia com comercio exterior (china) nao perguntar sobre, trabalhei algum tempo com renda fixa segura 'ntfs'(obrigado pvu), sou do rock, gosto de estudar sobre musculaçao e saude corporal, se vc for calistenico chega perto de mim nao",
+        "location": "Pacos de Ferreira, PT",
+        "gender": "male",
+        "images": [
+            "/avatars/vitor_oliveira__vtx.png"
+        ],
+        "interests": {
+            "games": [
+                "League of Legends",
+                "Axie Infinity",
+                "Clair Obscur: Expedition 33"
+            ],
+            "music": [
+                "Indie Nacional",
+                "Metalcore",
+                "Pop"
+            ],
+            "anime": [
+                "Dragon Ball Z",
+                "Black Clover"
+            ],
+            "movies": [
+                "The Conjuring",
+                "Supernatural",
+                "Superstore"
+            ]
+        }
+    },
+    {
+        "name": "Zizz",
+        "email": "zizz@matchgame.dev",
+        "age": 25,
+        "bio": "LES GO BRAS",
+        "location": "Unknown",
+        "gender": "male",
+        "images": [
+            "/avatars/zizz.jpg"
+        ],
+        "interests": {
+            "games": [
+                "UFC"
+            ],
+            "music": [
+                "Legend - Tevvez"
+            ],
+            "movies": [
+                "Rocky"
+            ]
+        }
+    }
+]

@@ -36,6 +36,8 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
             ...blocks.map(b => b.blockerId === userId ? b.blockedId : b.blockerId)
         ]);
 
+        console.log(`[Matches] Excluded IDs count: ${excludedIds.size}`, Array.from(excludedIds));
+
         // Fetch potential matches
         // In a real app, uses complex algorithms. Here: random users not in excluded list.
         const candidates = await prisma.user.findMany({

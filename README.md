@@ -136,6 +136,24 @@ matchgame/
 
 ---
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1.  **ERR_CONNECTION_REFUSED (Frontend)**
+    - Ensure the frontend is running: `pnpm --filter web dev`
+    - Check if port 3000 is blocked: `npx kill-port 3000`
+
+2.  **API Connection Failed (Backend)**
+    - Ensure backend is running: `pnpm dev:backend`
+    - Check port 3001.
+
+3.  **Database Errors (P2021, etc)**
+    - Run migrations: `npx prisma db push`
+    - Check if SQL Server/Postgres is running.
+
+---
+
 ## 👤 Author
 
 **Alex Cristofari**

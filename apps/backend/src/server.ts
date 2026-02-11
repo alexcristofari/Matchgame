@@ -16,9 +16,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://your-domain.com'
-        : 'http://localhost:3000',
+    origin: true, // Allow any origin (for development)
     credentials: true
 }));
 app.use(morgan('dev'));
@@ -36,6 +34,10 @@ app.use('/api/profiles', profilesRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/matches', matchesRouter);
+
+// Proxy Route (Bypass CORS/CSP for images)
+import { proxyRouter } from './modules/proxy/proxy.controller';
+app.use('/api/proxy', proxyRouter);
 
 // Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

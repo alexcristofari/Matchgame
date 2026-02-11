@@ -25,6 +25,13 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
         req.user = payload;
         next();
     } catch (error) {
+        // Log to file for debugging
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(process.cwd(), 'auth_debug.log');
+        fs.appendFileSync(logPath, `[${new Date().toISOString()}] Auth Error: ${error instanceof Error ? error.message : String(error)}\n`);
+
+        console.error('[AuthMiddleware] Error:', error);
         return res.status(401).json({
             success: false,
             error: 'Token inválido ou expirado'
