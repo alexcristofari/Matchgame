@@ -72,13 +72,13 @@ export default function Home() {
           />
 
           <h1 className="flex flex-col items-center leading-none tracking-tighter mb-8">
-            <span className="text-[12vw] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
+            <span className="text-[12vw] md:text-[8rem] font-bold text-transparent bg-clip-text bg-gradient-to-b from-gray-200 to-gray-500/50">
               CONNECT.
             </span>
-            <span className="text-[12vw] md:text-[8rem] font-light italic text-white/80 -mt-[2vw] md:-mt-8 z-10">
+            <span className="text-[12vw] md:text-[8rem] font-extralight italic text-gray-400 -mt-[2vw] md:-mt-8 z-10">
               VIBE.
             </span>
-            <span className="text-[12vw] md:text-[8rem] font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 -mt-[2vw] md:-mt-8">
+            <span className="text-[12vw] md:text-[8rem] font-bold text-transparent bg-clip-text bg-gradient-to-b from-gray-200 to-gray-500/80 -mt-[2vw] md:-mt-8">
               MATCH.
             </span>
           </h1>
@@ -87,7 +87,7 @@ export default function Home() {
             The ultimate matchmaking platform for gamers, audiophiles, and binge-watchers.
           </p>
 
-          <Link href="/auth/register" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-bold tracking-wide hover:scale-105 transition-transform">
+          <Link href="/auth/register" className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gray-200 text-black rounded-full font-bold tracking-wide hover:bg-white hover:scale-105 transition-all">
             <span>START YOUR JOURNEY</span>
             <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
