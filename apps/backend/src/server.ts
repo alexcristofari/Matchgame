@@ -10,7 +10,11 @@ import { integrationsRouter } from './modules/integrations/integrations.controll
 import { favoritesRouter } from './modules/favorites/favorites.controller';
 import { matchesRouter } from './modules/matches/matches.controller';
 
+import { createServer } from 'http';
+import { initializeSocket } from './modules/chat/socket.service';
+
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -48,9 +52,13 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     });
 });
 
+// Initialize Socket.io
+const io = initializeSocket(httpServer);
+
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🔌 Socket.io enabled`);
     console.log(`📝 API docs: http://localhost:${PORT}/health`);
 
     // Start Spotify callback HTTPS server
