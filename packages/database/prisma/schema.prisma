@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -52,13 +52,15 @@ model RefreshToken {
 
 model Profile {
   id         String   @id @default(cuid())
-  userId     String   @unique
-  bio        String?
-  birthDate  DateTime?
-  location   String?
-  latitude   Float?
-  longitude  Float?
-  lookingFor String   @default("both") // friendship, relationship, both
+  userId        String   @unique
+  displayName   String?
+  bio           String?
+  birthDate     DateTime?
+  location      String?
+  favoriteGame  String?
+  favoriteMovie String?
+  favoriteMusic String?
+  lookingFor    String   @default("both") // friendship, relationship, both
   photos     String   @default("[]") // JSON array of URLs
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -75,7 +77,7 @@ model Integration {
   externalId   String
   accessToken  String?
   refreshToken String?
-  data         String    @default("{}") @db.NVarChar(Max) // JSON data from API
+  data         String    @default("{}") // JSON data from API
   syncedAt     DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

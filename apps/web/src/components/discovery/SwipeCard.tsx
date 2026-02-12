@@ -158,17 +158,23 @@ export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
 
                     {/* Top Interests */}
                     {!showDetails && (
-                        <div className="flex gap-2">
-                            {user.topGame && (
-                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
+                        <div className="flex flex-wrap gap-2">
+                            {user.favoriteGame && (
+                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs border border-white/5">
                                     <span>🎮</span>
-                                    <span className="truncate max-w-[100px]">{user.topGame.name}</span>
+                                    <span className="truncate max-w-[80px] sm:max-w-[100px]">{user.favoriteGame}</span>
                                 </div>
                             )}
-                            {user.topSong && (
-                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-xs">
+                            {user.favoriteMovie && (
+                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs border border-white/5">
+                                    <span>🎬</span>
+                                    <span className="truncate max-w-[80px] sm:max-w-[100px]">{user.favoriteMovie}</span>
+                                </div>
+                            )}
+                            {user.favoriteMusic && (
+                                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-[10px] sm:text-xs border border-white/5">
                                     <span>🎵</span>
-                                    <span className="truncate max-w-[100px]">{user.topSong.name}</span>
+                                    <span className="truncate max-w-[80px] sm:max-w-[100px]">{user.favoriteMusic}</span>
                                 </div>
                             )}
                         </div>

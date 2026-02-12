@@ -54,6 +54,9 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
                         birthDate: true,
                         location: true,
                         photos: true,
+                        favoriteGame: true,
+                        favoriteMovie: true,
+                        favoriteMusic: true,
                     }
                 },
                 favorites: {
@@ -91,9 +94,12 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
                 bio: user.profile?.bio,
                 location: user.profile?.location,
                 photos,
+                favoriteGame: user.profile?.favoriteGame,
+                favoriteMovie: user.profile?.favoriteMovie,
+                favoriteMusic: user.profile?.favoriteMusic,
+                // Top items from favorites table (fallback or additional)
                 topGame: topGame ? { name: topGame.itemName, image: topGame.itemImageUrl } : null,
                 topSong: topSong ? { name: topSong.itemName, image: topSong.itemImageUrl } : null,
-                // Add Steam/Spotify info if needed deeply
             };
         });
 

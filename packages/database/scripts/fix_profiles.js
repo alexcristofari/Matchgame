@@ -32,7 +32,7 @@ const restorations = {
         }
     },
     'Esqueleto': {
-        bio: "AQUI E ROCK PORRA SE VC N CURTE ROCK SAI DA MINHA FRENTE"
+        bio: "AQUI E ROCK PORRA"
     },
     'Lula': {
         bio: "Companheiro! Picanha e cervejinha para todos. O amor venceu."
