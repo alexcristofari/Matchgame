@@ -3,6 +3,8 @@ import { prisma } from '../../shared/db';
 import { authMiddleware, AuthRequest } from '../../shared/middleware/auth.middleware';
 import { createProfileSchema, updateProfileSchema } from './profiles.schema';
 import { ZodError } from 'zod';
+import { uploadMiddleware } from '../../shared/middleware/upload.middleware';
+import { uploadToSupabase } from '../../shared/services/upload.service';
 
 export const profilesRouter = Router();
 
@@ -120,6 +122,31 @@ profilesRouter.patch('/me', authMiddleware, async (req: AuthRequest, res: Respon
         res.status(500).json({
             success: false,
             error: 'Erro ao atualizar perfil'
+        });
+    }
+});
+
+// POST /api/profiles/upload - Upload profile photo
+profilesRouter.post('/upload', authMiddleware, uploadMiddleware.single('photo'), async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nenhuma imagem enviada'
+            });
+        }
+
+        const photoUrl = await uploadToSupabase(req.file.buffer, req.file.mimetype);
+
+        res.json({
+            success: true,
+            data: { url: photoUrl }
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao fazer upload da imagem'
         });
     }
 });

@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==================== USER & AUTH ====================
@@ -24,6 +25,7 @@ model User {
   profile      Profile?
   integrations Integration[]
   favorites    Favorite[]
+  interests    UserInterest[] // <--- New relation for recommendation engine
   likesGiven   Like[]        @relation("LikesGiven")
   likesReceived Like[]       @relation("LikesReceived")
   matchesAsUser1 Match[]     @relation("MatchUser1")
@@ -33,6 +35,8 @@ model User {
   reportsReceived Report[]   @relation("ReportsReceived")
   blocksGiven  Block[]       @relation("BlocksGiven")
   blocksReceived Block[]     @relation("BlocksReceived")
+  dislikesGiven Dislike[]    @relation("DislikesGiven")
+  dislikesReceived Dislike[] @relation("DislikesReceived")
   refreshTokens RefreshToken[]
 }
 
@@ -60,6 +64,9 @@ model Profile {
   photos     String   @default("[]") // JSON array of URLs
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  favoriteGame  String?
+  favoriteMovie String?
+  favoriteMusic String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -73,7 +80,8 @@ model Integration {
   externalId   String
   accessToken  String?
   refreshToken String?
-  data         String    @default("{}") @db.NVarChar(Max) // JSON data from API
+  data         String    @default("{}") @db.Text // JSON data from API
+  genres       String[]  @default([]) // Explicit genres column for easier querying
   syncedAt     DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -90,9 +98,14 @@ model Favorite {
   userId       String
   category     String // games, music, movies, anime, books
   position     Int    // 1, 2, or 3
-  itemId       String
+  itemId       String // External ID (Steam AppID, TMDB ID)
   itemName     String
   itemImageUrl String?
+  
+  // Relation to MediaItem (Optional, allowing gradual migration)
+  mediaItemId  String?
+  mediaItem    MediaItem? @relation(fields: [mediaItemId], references: [id])
+  
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -111,6 +124,18 @@ model Like {
 
   fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   toUser   User @relation("LikesReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Dislike {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  createdAt   DateTime @default(now())
+
+  fromUser User @relation("DislikesGiven", fields: [fromUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toUser   User @relation("DislikesReceived", fields: [toUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([fromUserId, toUserId])
 }
@@ -169,4 +194,54 @@ model Block {
   blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([blockerId, blockedId])
+}
+
+// ==================== RECOMMENDATION ENGINE ====================
+
+model MediaItem {
+  id            String   @id @default(cuid())
+  externalId    String   // Steam ID, TMDB ID, MAL ID
+  type          String   // "GAME", "MOVIE", "ANIME", "MUSIC"
+  title         String
+  
+  // Rich Metadata (Mirrors TCC CSV columns)
+  genres        String   @default("[]") // JSON array: ["Action", "Sci-Fi"]
+  keywords      String   @default("[]") // JSON array: ["space", "heist"]
+  overview      String?  @db.Text // Description for TF-IDF
+  developer     String?  // For Games
+  publisher     String?  // For Games
+  releaseDate   DateTime?
+  popularity    Float?
+  voteAverage   Float?   // 0-10 scale for quality score
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  favoritedBy   Favorite[]
+
+  @@unique([externalId, type])
+}
+
+model UserInterest {
+  id        String   @id @default(cuid())
+  userId    String
+  
+  // Domain: "GAME", "MOVIE", "MUSIC", "ANIME"
+  domain    String   
+  
+  // Type: "GENRE", "TAG", "DEVELOPER"
+  type      String   
+  
+  // Value: "FPS", "Horror", "Valve", "Metallica"
+  value     String   
+  
+  // Weight: 0.1 to 1.0 (Calculated based on frequency/ranking)
+  weight    Float    @default(1.0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, domain])
 }

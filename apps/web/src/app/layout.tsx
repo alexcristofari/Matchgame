@@ -6,8 +6,8 @@ import { Providers } from "@/components/providers/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MatchGame",
-  description: "Connect with gamers who share your interests",
+  title: "MatchGame - Conecte, Jogue, Match.",
+  description: "A melhor plataforma para encontrar gamers e amigos com gostos parecidos.",
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

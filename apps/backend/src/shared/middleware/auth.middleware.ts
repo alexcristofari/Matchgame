@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
         userId: string;
         email: string;
     };
+    file?: any; // Using any to avoid persistent namespace issues with Multer types
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {

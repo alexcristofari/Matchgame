@@ -6,146 +6,423 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, profilesApi, integrationsApi } from '@/services/api';
+import { EditProfileModal } from '@/components/profile/EditProfileModal';
 
 interface IntegrationStatus {
     connected: boolean;
     externalId?: string;
     syncedAt?: string;
+    favoritesCount?: number;
+    genresCount?: number;
 }
 
 interface IntegrationsState {
     steam: IntegrationStatus;
     spotify: IntegrationStatus;
+    anime: IntegrationStatus;
+    movie: IntegrationStatus;
+    books: IntegrationStatus;
 }
 
 export default function DashboardPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isAuthenticated, logout, setUser } = useAuthStore();
-    const [profile, setProfile] = useState<{ bio?: string; lookingFor?: string } | null>(null);
+    const [profile, setProfile] = useState<{ bio?: string; lookingFor?: string; location?: string; photos?: string[] } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showEditProfileModal, setShowEditProfileModal] = useState(false);
     const [integrations, setIntegrations] = useState<IntegrationsState>({
         steam: { connected: false },
-        spotify: { connected: false }
+        spotify: { connected: false },
+        anime: { connected: false },
+        movie: { connected: false },
+        books: { connected: false }
     });
+    const [matchesCount, setMatchesCount] = useState(0);
+    const [likesReceivedCount, setLikesReceivedCount] = useState(0);
 
-    // Modal states
-    const [showSteamModal, setShowSteamModal] = useState(false);
-    const [steamId, setSteamId] = useState('');
-    const [connecting, setConnecting] = useState(false);
+    // Connect & Feedback State
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [connecting, setConnecting] = useState(false);
 
-    // Games selection modal states
-    const [showGamesModal, setShowGamesModal] = useState(false);
-    const [allGames, setAllGames] = useState<{ appid: number; name: string; playtimeHours: number; iconUrl: string | null }[]>([]);
-    const [selectedFavorites, setSelectedFavorites] = useState<{ appid: number; name: string; iconUrl?: string }[]>([]);
-    const [gamesLoading, setGamesLoading] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-
-    // Music manual modal states
+    // Modals State
+    const [showSteamModal, setShowSteamModal] = useState(false);
     const [showMusicModal, setShowMusicModal] = useState(false);
-    const [musicData, setMusicData] = useState({
-        profileUrl: '',
-        playlists: [] as string[],
-        genres: [] as string[],
-        topSongs: [] as { name: string; artist: string; url: string; imageUrl?: string }[]
-    });
+    const [showGamesModal, setShowGamesModal] = useState(false);
+    const [showAnimeModal, setShowAnimeModal] = useState(false);
+    const [showMovieModal, setShowMovieModal] = useState(false);
 
-    // New Music UI State
-    const [availableGenres, setAvailableGenres] = useState<string[]>([]);
+    // Steam State
+    const [steamId, setSteamId] = useState('');
+
+    // Music State
+    const [musicData, setMusicData] = useState({ profileUrl: '', genres: [] as string[], topSongs: [] as any[] });
     const [trackSearchQuery, setTrackSearchQuery] = useState('');
     const [trackSearchResults, setTrackSearchResults] = useState<any[]>([]);
     const [isSearchingTracks, setIsSearchingTracks] = useState(false);
+    const availableGenres = ['Rock', 'Pop', 'Indie', 'Metal', 'Hip Hop', 'Jazz', 'Electronic', 'Classical'];
 
-    // Anime Modal State
-    const [showAnimeModal, setShowAnimeModal] = useState(false);
-    const [animeData, setAnimeData] = useState({
-        genres: [] as string[],
-        favorites: [] as { id: number; title: string; imageUrl: string }[],
-        profileUrl: ''
-    });
-    const [availableAnimeGenres, setAvailableAnimeGenres] = useState<string[]>([]);
+    // Games State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [gamesLoading, setGamesLoading] = useState(false);
+    const [filteredGames, setFilteredGames] = useState<any[]>([]);
+    const [selectedFavorites, setSelectedFavorites] = useState<any[]>([]);
+
+    // Anime State
+    const [animeData, setAnimeData] = useState({ profileUrl: '', genres: [] as string[], favorites: [] as any[] });
     const [animeSearchQuery, setAnimeSearchQuery] = useState('');
     const [animeSearchResults, setAnimeSearchResults] = useState<any[]>([]);
     const [isSearchingAnime, setIsSearchingAnime] = useState(false);
+    const availableAnimeGenres = ['Shonen', 'Seinen', 'Shojo', 'Mecha', 'Slice of Life', 'Horror', 'Sports'];
 
-    // Movie Modal State
-    const [showMovieModal, setShowMovieModal] = useState(false);
-    const [movieData, setMovieData] = useState({
-        genres: [] as string[],
-        favorites: [] as { id: number; title: string; imageUrl: string }[],
-        profileUrl: ''
-    });
-    const [availableMovieGenres, setAvailableMovieGenres] = useState<string[]>([]);
+    // Movie State
+    const [movieData, setMovieData] = useState({ profileUrl: '', genres: [] as string[], favorites: [] as any[] });
     const [movieSearchQuery, setMovieSearchQuery] = useState('');
     const [movieSearchResults, setMovieSearchResults] = useState<any[]>([]);
     const [isSearchingMovie, setIsSearchingMovie] = useState(false);
+    const availableMovieGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller'];
 
-    // Music Handlers
-    const handleMusicChange = (field: string, value: any, index?: number, subField?: string) => {
-        setMusicData(prev => {
-            const newData = { ...prev };
-            if (field === 'playlists' || field === 'genres') {
-                const list = [...(newData[field as keyof typeof newData] as string[])];
-                if (index !== undefined) list[index] = value;
-                (newData as any)[field] = list;
-            } else if (field === 'topSongs' && index !== undefined && subField) {
-                const list = [...newData.topSongs];
-                list[index] = { ...list[index], [subField]: value };
-                newData.topSongs = list;
-            } else {
-                (newData as any)[field] = value;
-            }
-            return newData;
-        });
-    };
+    // --- Handlers Implementation ---
 
-    const addMusicItem = (field: 'playlists' | 'genres' | 'topSongs') => {
-        setMusicData(prev => {
-            const newData = { ...prev };
-            if (field === 'playlists' && prev.playlists.length < 3) {
-                newData.playlists = [...prev.playlists, ''];
-            } else if (field === 'genres' && prev.genres.length < 3) {
-                newData.genres = [...prev.genres, ''];
-            } else if (field === 'topSongs' && prev.topSongs.length < 5) {
-                newData.topSongs = [...prev.topSongs, { name: '', artist: '', url: '' }];
-            }
-            return newData;
-        });
-    };
-
-    const removeMusicItem = (field: 'playlists' | 'genres' | 'topSongs', index: number) => {
-        setMusicData(prev => {
-            const newData = { ...prev };
-            if (field === 'playlists') {
-                newData.playlists = prev.playlists.filter((_, i) => i !== index);
-            } else if (field === 'genres') {
-                newData.genres = prev.genres.filter((_, i) => i !== index);
-            } else if (field === 'topSongs') {
-                newData.topSongs = prev.topSongs.filter((_, i) => i !== index);
-            }
-            return newData;
-        });
-    };
-
-    // Fetch genres
-    useEffect(() => {
-        if (showMusicModal && availableGenres.length === 0) {
-            integrationsApi.getSpotifyGenres().then(res => {
-                if (res.success) setAvailableGenres(res.data);
-            });
+    const handleConnectSteam = async () => {
+        try {
+            setConnecting(true);
+            setError('');
+            await integrationsApi.connectSteam(steamId);
+            setSuccess('Steam conectado com sucesso!');
+            setShowSteamModal(false);
+            setIntegrations(prev => ({ ...prev, steam: { ...prev.steam, connected: true } }));
+        } catch (err: any) {
+            setError(err.response?.data?.error || 'Erro ao conectar Steam');
+        } finally {
+            setConnecting(false);
         }
-    }, [showMusicModal]);
+    };
 
-    // Search tracks Debounce
+    const handleSaveFavorites = async () => {
+        try {
+            setConnecting(true);
+            await integrationsApi.saveFavoriteGames(selectedFavorites);
+            setSuccess('Jogos favoritos salvos!');
+            setShowGamesModal(false);
+        } catch (err: any) {
+            setError('Erro ao salvar jogos');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const handleSaveMusic = async () => {
+        try {
+            setConnecting(true);
+            await integrationsApi.saveSpotifyManual({
+                profileUrl: musicData.profileUrl,
+                genres: musicData.genres,
+                topSongs: musicData.topSongs
+            });
+            setSuccess('Perfil musical salvo!');
+            setShowMusicModal(false);
+        } catch (err) {
+            setError('Erro ao salvar música');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const handleSaveAnime = async () => {
+        try {
+            setConnecting(true);
+            await integrationsApi.saveAnimeManual({
+                genres: animeData.genres,
+                favorites: animeData.favorites
+            });
+            setSuccess('Animes salvos!');
+            setShowAnimeModal(false);
+        } catch (err) {
+            setError('Erro ao salvar animes');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const handleSaveMovie = async () => {
+        try {
+            setConnecting(true);
+            await integrationsApi.saveMovieManual({
+                genres: movieData.genres,
+                favorites: movieData.favorites
+            });
+            setSuccess('Filmes salvos!');
+            setShowMovieModal(false);
+        } catch (err) {
+            setError('Erro ao salvar filmes');
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const handleLogout = logout;
+
+    const handleIntegrationClick = async (name: string) => {
+        if (name === 'Steam') {
+            handleOpenGamesModal();
+        }
+        if (name === 'Spotify') {
+            setShowMusicModal(true);
+            try {
+                const res = await integrationsApi.getSpotify();
+                if (res.data) {
+                    setMusicData({
+                        profileUrl: res.data.profileUrl || '',
+                        genres: res.data.genres || [],
+                        topSongs: res.data.topSongs || []
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load Spotify data', e);
+            }
+        }
+        if (name === 'MyAnimeList') {
+            setShowAnimeModal(true);
+            try {
+                const res = await integrationsApi.getAnime();
+                if (res.data) {
+                    setAnimeData({
+                        profileUrl: res.data.profileUrl || '',
+                        genres: res.data.genres || [],
+                        favorites: res.data.favorites || []
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load Anime data', e);
+            }
+        }
+        if (name === 'TMDB') {
+            setShowMovieModal(true);
+            try {
+                const res = await integrationsApi.getMovie();
+                if (res.data) {
+                    setMovieData({
+                        profileUrl: res.data.profileUrl || '',
+                        genres: res.data.genres || [],
+                        favorites: res.data.favorites || []
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load Movie data', e);
+            }
+        }
+    };
+
+    // --- Helper Handlers ---
+
+    // Games
+    const handleOpenGamesModal = async () => {
+        setShowGamesModal(true);
+        try {
+            const res = await integrationsApi.getFavoriteGames();
+            // Expected format: { games: [], favorites: [] } or just favorites array depending on API
+            // Let's check integrationsApi.getFavoriteGames implementation in api.ts
+            // It calls /favorites/games. 
+            // The backend endpoint GET /favorites/games (we need to check this endpoint if it exists, otherwise use steam/games)
+
+            // Actually, let's use the Steam integration data first if available
+            // But we want the "Manual" favorites if we are supporting that. 
+            // For now, let's assume getSteamGames gives us the selection pool + favorites.
+
+            // Wait, looking at api.ts: getFavoriteGames calls /favorites/games
+            // Looking at backend... I don't see favoritesRouter in my file view, only integrationsRouter.
+            // Let's assume for now we use the steam endpoint for existing favorites if the favorites endpoint logic is similar.
+
+            // Correction: The user wants to manually select favorites from a list.
+            // Let's try to fetch what we have.
+
+            const resSteam = await integrationsApi.getSteamGames();
+            if (resSteam.data && resSteam.data.favorites) {
+                setSelectedFavorites(resSteam.data.favorites);
+            }
+        } catch (e) {
+            console.error('Failed to load games', e);
+        }
+    };
+
+    // Games Helper
+    const toggleGameSelection = (game: any) => {
+        if (selectedFavorites.some(f => f.appid === game.appid)) {
+            setSelectedFavorites(prev => prev.filter(f => f.appid !== game.appid));
+        } else {
+            if (selectedFavorites.length >= 5) return;
+            setSelectedFavorites(prev => [...prev, game]);
+        }
+    };
+
+    // Music
+    const toggleGenre = (genre: string) => {
+        if (musicData.genres.includes(genre)) {
+            setMusicData(prev => ({ ...prev, genres: prev.genres.filter(g => g !== genre) }));
+        } else {
+            if (musicData.genres.length >= 3) return;
+            setMusicData(prev => ({ ...prev, genres: [...prev.genres, genre] }));
+        }
+    };
+    const addTrack = (track: any) => {
+        if (musicData.topSongs.length >= 5) return;
+        setMusicData(prev => ({ ...prev, topSongs: [...prev.topSongs, track] }));
+        setTrackSearchResults([]);
+        setTrackSearchQuery('');
+    };
+    const removeMusicItem = (type: string, index: number) => {
+        if (type === 'topSongs') {
+            setMusicData(prev => ({ ...prev, topSongs: prev.topSongs.filter((_, i) => i !== index) }));
+        }
+    };
+
+    // Anime
+    const toggleAnimeGenre = (genre: string) => {
+        if (animeData.genres.includes(genre)) {
+            setAnimeData(prev => ({ ...prev, genres: prev.genres.filter(g => g !== genre) }));
+        } else {
+            if (animeData.genres.length >= 3) return;
+            setAnimeData(prev => ({ ...prev, genres: [...prev.genres, genre] }));
+        }
+    };
+    const addAnime = (anime: any) => {
+        if (animeData.favorites.length >= 5) return;
+        setAnimeData(prev => ({ ...prev, favorites: [...prev.favorites, anime] }));
+        setAnimeSearchResults([]);
+        setAnimeSearchQuery('');
+    };
+    const removeAnimeItem = (type: string, index: number) => {
+        if (type === 'favorites') {
+            setAnimeData(prev => ({ ...prev, favorites: prev.favorites.filter((_, i) => i !== index) }));
+        }
+    };
+
+    // Movie
+    const toggleMovieGenre = (genre: string) => {
+        if (movieData.genres.includes(genre)) {
+            setMovieData(prev => ({ ...prev, genres: prev.genres.filter(g => g !== genre) }));
+        } else {
+            if (movieData.genres.length >= 3) return;
+            setMovieData(prev => ({ ...prev, genres: [...prev.genres, genre] }));
+        }
+    };
+    const addMovie = (movie: any) => {
+        if (movieData.favorites.length >= 5) return;
+        setMovieData(prev => ({ ...prev, favorites: [...prev.favorites, movie] }));
+        setMovieSearchResults([]);
+        setMovieSearchQuery('');
+    };
+    const removeMovieItem = (type: string, index: number) => {
+        if (type === 'favorites') {
+            setMovieData(prev => ({ ...prev, favorites: prev.favorites.filter((_, i) => i !== index) }));
+        }
+    };
+
+    // Music Helper for input
+    const handleMusicChange = (field: string, value: any) => {
+        setMusicData(prev => ({ ...prev, [field]: value }));
+    };
+
+
     useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            if (trackSearchQuery.trim().length > 2) {
+        const loadDashboardData = async () => {
+            if (!user) return;
+
+            try {
+                // Load profile
+                try {
+                    const profileRes = await profilesApi.getMyProfile();
+                    if (profileRes.success) {
+                        setProfile(profileRes.data);
+                    }
+                } catch (error) {
+                    console.error('Failed to load profile:', error);
+                }
+
+                // Load all integrations in parallel to determine real connectivity
+                const [steamRes, spotifyRes, animeRes, movieRes, booksRes] = await Promise.all([
+                    integrationsApi.getSteam().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getSpotify().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getAnime().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getMovie().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getBooks().catch(() => ({ success: false, data: null }))
+                ]);
+
+                const steamData = steamRes.data || {};
+                const spotifyData = spotifyRes.data || {};
+                const animeData = animeRes.data || {};
+                const movieData = movieRes.data || {};
+                const booksDataRes = booksRes.data || {};
+
+                setIntegrations({
+                    steam: {
+                        connected: !!steamData.connected,
+                        favoritesCount: (steamData.favoriteGames || []).length,
+                        genresCount: (steamData.genres || []).length
+                    },
+                    spotify: {
+                        connected: !!spotifyData.connected,
+                        favoritesCount: (spotifyData.topSongs || spotifyData.topArtists || []).length,
+                        genresCount: (spotifyData.genres || []).length
+                    },
+                    anime: {
+                        connected: !!animeData.connected,
+                        favoritesCount: (animeData.favorites || []).length,
+                        genresCount: (animeData.genres || []).length
+                    },
+                    movie: {
+                        connected: !!movieData.connected,
+                        favoritesCount: (movieData.favorites || []).length,
+                        genresCount: (movieData.genres || []).length
+                    },
+                    books: {
+                        connected: !!booksDataRes.connected,
+                        favoritesCount: (booksDataRes.favorites || []).length,
+                        genresCount: (booksDataRes.genres || []).length
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboardData();
+    }, [user]);
+
+    // --- Search Effects ---
+
+    // 1. Games Search
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (searchQuery.length > 2) {
+                setGamesLoading(true);
+                try {
+                    const res = await integrationsApi.searchGames(searchQuery);
+                    setFilteredGames(res.data || []);
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setGamesLoading(false);
+                }
+            } else {
+                setFilteredGames([]);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // 2. Music Search
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (trackSearchQuery.length > 2) {
                 setIsSearchingTracks(true);
                 try {
                     const res = await integrationsApi.searchSpotifyTracks(trackSearchQuery);
-                    if (res.success) setTrackSearchResults(res.data);
+                    setTrackSearchResults(res.data || []);
                 } catch (e) {
                     console.error(e);
                 } finally {
@@ -155,92 +432,17 @@ export default function DashboardPage() {
                 setTrackSearchResults([]);
             }
         }, 500);
-        return () => clearTimeout(timeoutId);
+        return () => clearTimeout(timer);
     }, [trackSearchQuery]);
 
-    const toggleGenre = (genre: string) => {
-        setMusicData(prev => {
-            const current = prev.genres || [];
-            if (current.includes(genre)) {
-                return { ...prev, genres: current.filter(g => g !== genre) };
-            }
-            if (current.length >= 3) return prev;
-            return { ...prev, genres: [...current, genre] };
-        });
-    };
-
-    const addTrack = (track: any) => {
-        setMusicData(prev => {
-            if (prev.topSongs.length >= 5) return prev;
-            // Check if already added
-            if (prev.topSongs.some(s => s.url === track.url)) return prev;
-
-            const newSong = {
-                name: track.name,
-                artist: track.artist,
-                url: track.url,
-                imageUrl: track.imageUrl
-            };
-            return { ...prev, topSongs: [...prev.topSongs, newSong] };
-        });
-        setTrackSearchQuery('');
-        setTrackSearchResults([]);
-    };
-
-    const handleSaveMusic = async () => {
-        setConnecting(true);
-        try {
-            // Filter empty items
-            const cleanData = {
-                ...musicData,
-                playlists: musicData.playlists.filter(p => p.trim()),
-                genres: musicData.genres.filter(g => g.trim()),
-                topSongs: musicData.topSongs.filter(s => s.name.trim() && s.artist.trim())
-            };
-
-            const result = await integrationsApi.saveSpotifyManual(cleanData);
-            if (result.success) {
-                setSuccess('Perfil de música salvo com sucesso!');
-                setShowMusicModal(false);
-                loadIntegrations();
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar música');
-        } finally {
-            setConnecting(false);
-        }
-    };
-
-    // Anime Handlers
+    // 3. Anime Search
     useEffect(() => {
-        if (showAnimeModal) {
-            // Load existing data
-            integrationsApi.getAnime().then(res => {
-                if (res.success && res.data && res.data.connected) {
-                    setAnimeData({
-                        genres: res.data.genres || [],
-                        favorites: res.data.favorites || [],
-                        profileUrl: res.data.profileUrl || ''
-                    });
-                }
-            }).catch(() => { });
-
-            if (availableAnimeGenres.length === 0) {
-                integrationsApi.getAnimeGenres().then(res => {
-                    if (res.success) setAvailableAnimeGenres(res.data);
-                });
-            }
-        }
-    }, [showAnimeModal]);
-
-    // Anime Search Debounce
-    useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            if (animeSearchQuery.trim().length > 2) {
+        const timer = setTimeout(async () => {
+            if (animeSearchQuery.length > 2) {
                 setIsSearchingAnime(true);
                 try {
                     const res = await integrationsApi.searchAnime(animeSearchQuery);
-                    if (res.success) setAnimeSearchResults(res.data);
+                    setAnimeSearchResults(res.data || []);
                 } catch (e) {
                     console.error(e);
                 } finally {
@@ -250,92 +452,17 @@ export default function DashboardPage() {
                 setAnimeSearchResults([]);
             }
         }, 500);
-        return () => clearTimeout(timeoutId);
+        return () => clearTimeout(timer);
     }, [animeSearchQuery]);
 
-    const toggleAnimeGenre = (genre: string) => {
-        setAnimeData(prev => {
-            const current = prev.genres || [];
-            if (current.includes(genre)) {
-                return { ...prev, genres: current.filter(g => g !== genre) };
-            }
-            if (current.length >= 3) return prev;
-            return { ...prev, genres: [...current, genre] };
-        });
-    };
-
-    const addAnime = (anime: any) => {
-        setAnimeData(prev => {
-            if (prev.favorites.length >= 5) return prev;
-            if (prev.favorites.some(f => f.id === anime.id)) return prev;
-
-            return {
-                ...prev,
-                favorites: [...prev.favorites, {
-                    id: anime.id,
-                    title: anime.title,
-                    imageUrl: anime.imageUrl
-                }]
-            };
-        });
-        setAnimeSearchQuery('');
-        setAnimeSearchResults([]);
-    };
-
-    const removeAnimeItem = (field: 'genres' | 'favorites', index: number) => {
-        setAnimeData(prev => {
-            if (field === 'genres') {
-                return { ...prev, genres: prev.genres.filter((_, i) => i !== index) };
-            } else {
-                return { ...prev, favorites: prev.favorites.filter((_, i) => i !== index) };
-            }
-        });
-    };
-
-    const handleSaveAnime = async () => {
-        setConnecting(true);
-        try {
-            await integrationsApi.saveAnimeManual(animeData);
-            setSuccess('Perfil de animes salvo com sucesso!');
-            setShowAnimeModal(false);
-            // loadIntegrations(); // Assume we might want to reload sync status if we had one
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar animes');
-        } finally {
-            setConnecting(false);
-        }
-    };
-
-    // Movie Handlers
+    // 4. Movie Search
     useEffect(() => {
-        if (showMovieModal) {
-            // Load existing data
-            integrationsApi.getMovie().then(res => {
-                if (res.success && res.data && res.data.connected) {
-                    setMovieData({
-                        genres: res.data.genres || [],
-                        favorites: res.data.favorites || [],
-                        profileUrl: res.data.profileUrl || ''
-                    });
-                }
-            }).catch(() => { });
-
-            if (availableMovieGenres.length === 0) {
-                integrationsApi.getMovieGenres().then(res => {
-                    if (res.success) setAvailableMovieGenres(res.data);
-                });
-            }
-        }
-    }, [showMovieModal]);
-
-    // Movie Search Debounce
-    useEffect(() => {
-        const timeoutId = setTimeout(async () => {
-            if (movieSearchQuery.trim().length > 2) {
+        const timer = setTimeout(async () => {
+            if (movieSearchQuery.length > 2) {
                 setIsSearchingMovie(true);
                 try {
                     const res = await integrationsApi.searchMovies(movieSearchQuery);
-                    if (res.success) setMovieSearchResults(res.data);
+                    setMovieSearchResults(res.data || []);
                 } catch (e) {
                     console.error(e);
                 } finally {
@@ -345,309 +472,41 @@ export default function DashboardPage() {
                 setMovieSearchResults([]);
             }
         }, 500);
-        return () => clearTimeout(timeoutId);
+        return () => clearTimeout(timer);
     }, [movieSearchQuery]);
-
-    const toggleMovieGenre = (genre: string) => {
-        setMovieData(prev => {
-            const current = prev.genres || [];
-            if (current.includes(genre)) {
-                return { ...prev, genres: current.filter(g => g !== genre) };
-            }
-            if (current.length >= 3) return prev;
-            return { ...prev, genres: [...current, genre] };
-        });
-    };
-
-    const addMovie = (movie: any) => {
-        setMovieData(prev => {
-            if (prev.favorites.length >= 5) return prev;
-            if (prev.favorites.some(f => f.id === movie.id)) return prev;
-
-            return {
-                ...prev,
-                favorites: [...prev.favorites, {
-                    id: movie.id,
-                    title: movie.title,
-                    imageUrl: movie.imageUrl
-                }]
-            };
-        });
-        setMovieSearchQuery('');
-        setMovieSearchResults([]);
-    };
-
-    const removeMovieItem = (field: 'genres' | 'favorites', index: number) => {
-        setMovieData(prev => {
-            if (field === 'genres') {
-                return { ...prev, genres: prev.genres.filter((_, i) => i !== index) };
-            } else {
-                return { ...prev, favorites: prev.favorites.filter((_, i) => i !== index) };
-            }
-        });
-    };
-
-    const handleSaveMovie = async () => {
-        setConnecting(true);
-        try {
-            await integrationsApi.saveMovieManual(movieData);
-            setSuccess('Perfil de filmes salvo com sucesso!');
-            setShowMovieModal(false);
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar filmes');
-        } finally {
-            setConnecting(false);
-        }
-    };
-
-    // ... (useEffect for spotify checked) ...
-
-    const loadFavorites = async () => {
-        try {
-            const result = await integrationsApi.getFavoriteGames();
-            if (result.success) {
-                // Store full objects
-                setSelectedFavorites(result.data.map((f: any) => ({
-                    appid: Number(f.appid),
-                    name: f.name,
-                    iconUrl: f.iconUrl
-                })));
-            }
-        } catch (err) {
-            console.error('Error loading favorites:', err);
-        }
-    };
-
-    useEffect(() => {
-        if (isAuthenticated) loadFavorites();
-    }, [isAuthenticated]);
-
-    // Search games effect
-    useEffect(() => {
-        const search = async () => {
-            if (searchQuery.length > 2) {
-                setGamesLoading(true);
-                try {
-                    const result = await integrationsApi.searchGames(searchQuery);
-                    if (result.success) {
-                        setAllGames(result.data);
-                    }
-                } catch (err) {
-                    console.error('Search error:', err);
-                } finally {
-                    setGamesLoading(false);
-                }
-            } else if (integrations.steam.connected && searchQuery.length === 0) {
-                loadSteamGames();
-            } else if (searchQuery.length === 0) {
-                setAllGames([]);
-            }
-        };
-
-        const timeoutId = setTimeout(search, 500);
-        return () => clearTimeout(timeoutId);
-    }, [searchQuery, integrations.steam.connected]);
-
-    const loadSteamGames = async () => {
-        setGamesLoading(true);
-        try {
-            const result = await integrationsApi.getSteamGames();
-            if (result.success) {
-                setAllGames(result.data.games);
-            }
-        } catch (err: any) {
-            console.error('Erro ao carregar jogos Steam:', err);
-        } finally {
-            setGamesLoading(false);
-        }
-    };
-
-    const handleOpenGamesModal = async () => {
-        setShowGamesModal(true);
-        setSearchQuery('');
-        if (integrations.steam.connected) {
-            await loadSteamGames();
-        } else {
-            setAllGames([]);
-        }
-    };
-
-    const toggleGameSelection = (game: { appid: number; name: string; iconUrl?: string | null }) => {
-        setSelectedFavorites(prev => {
-            if (prev.find(f => f.appid === game.appid)) {
-                return prev.filter(f => f.appid !== game.appid);
-            }
-            if (prev.length >= 5) {
-                setError('Você pode selecionar no máximo 5 jogos');
-                return prev;
-            }
-            return [...prev, { appid: game.appid, name: game.name, iconUrl: game.iconUrl || undefined }];
-        });
-    };
-
-    const handleSaveFavorites = async () => {
-        setConnecting(true);
-        setError('');
-        try {
-            const result = await integrationsApi.saveFavoriteGames(selectedFavorites);
-            if (result.success) {
-                setSuccess(`${result.data.length || selectedFavorites.length} favoritos salvos!`);
-                setShowGamesModal(false);
-                loadFavorites();
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao salvar favoritos');
-        } finally {
-            setConnecting(false);
-        }
-    };
-    const loadIntegrations = async () => {
-        try {
-            const result = await integrationsApi.getStatus();
-            if (result.success) {
-                setIntegrations(result.data);
-            }
-        } catch (err) {
-            console.error('Error loading integrations:', err);
-        }
-    };
-
-    // Check for Spotify callback
-    useEffect(() => {
-        const spotifyConnected = searchParams.get('spotify_connected');
-        const spotifyError = searchParams.get('spotify_error');
-
-        if (spotifyConnected === 'true') {
-            setSuccess('Spotify conectado com sucesso!');
-            loadIntegrations();
-            // Clear URL params
-            window.history.replaceState({}, '', '/dashboard');
-        } else if (spotifyError) {
-            setError(`Erro ao conectar Spotify: ${spotifyError}`);
-            window.history.replaceState({}, '', '/dashboard');
-        }
-    }, [searchParams]);
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            const token = localStorage.getItem('accessToken');
-            if (!token) { router.push('/auth/login'); return; }
-
-            try {
-                const userData = await usersApi.getMe();
-                if (userData.success) {
-                    setUser(userData.data);
-                    try {
-                        const profileData = await profilesApi.getMyProfile();
-                        if (profileData.success) setProfile(profileData.data);
-                    } catch { /* no profile */ }
-
-                    // Load integrations status
-                    await loadIntegrations();
-                }
-            } catch { logout(); router.push('/auth/login'); }
-            finally { setLoading(false); }
-        };
-        checkAuth();
-    }, [router, setUser, logout]);
-
-    const handleLogout = () => { logout(); router.push('/auth/login'); };
-
-    const handleConnectSteam = async () => {
-        if (!steamId || steamId.length !== 17) {
-            setError('Steam ID deve ter 17 dígitos');
-            return;
-        }
-
-        setConnecting(true);
-        setError('');
-
-        try {
-            const result = await integrationsApi.connectSteam(steamId);
-            if (result.success) {
-                setSuccess(`Steam conectado! ${result.data.gameCount} jogos encontrados.`);
-                setShowSteamModal(false);
-                setSteamId('');
-                await loadIntegrations();
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao conectar Steam');
-        } finally {
-            setConnecting(false);
-        }
-    };
-
-    const handleConnectSpotify = async () => {
-        setConnecting(true);
-        setError('');
-
-        try {
-            const result = await integrationsApi.getSpotifyAuthUrl();
-            if (result.success && result.data.authUrl) {
-                // Redirect to Spotify OAuth
-                window.location.href = result.data.authUrl;
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Erro ao iniciar conexão Spotify');
-            setConnecting(false);
-        }
-    };
-
-
-
-    const handleIntegrationClick = (name: string) => {
-        setError('');
-        setSuccess('');
-
-        if (name === 'Steam') {
-            if (integrations.steam.connected) {
-                handleOpenGamesModal();
-            } else {
-                setShowSteamModal(true);
-            }
-        } else if (name === 'Spotify') {
-            // Pre-populate if connected
-            if (integrations.spotify.connected) {
-                integrationsApi.getSpotify().then(res => {
-                    if (res.success && res.data) {
-                        const data = res.data;
-                        // Handle manual vs automatic data structure
-                        const isManual = (data as any).isManual;
-
-                        setMusicData({
-                            profileUrl: isManual ? (data as any).profileUrl : data.profile?.external_urls?.spotify || '',
-                            playlists: (data as any).playlists || [],
-                            genres: (data as any).genres || [],
-                            topSongs: ((data as any).topSongs || []).map((s: any) => ({
-                                name: s.name,
-                                artist: s.artist,
-                                url: s.url,
-                                imageUrl: s.imageUrl
-                            }))
-                        });
-                    }
-                }).catch(console.error);
-            }
-            setShowMusicModal(true);
-            setShowMusicModal(true);
-        } else if (name === 'MyAnimeList') {
-            setShowAnimeModal(true);
-        } else if (name === 'TMDB') {
-            setShowMovieModal(true);
-        } else {
-            alert(`${name} em breve!`);
-        }
-    };
-
-    const filteredGames = allGames.filter(game =>
-        game.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     const getIntegrationCount = () => {
         let count = 0;
-        if (integrations.steam.connected) count++;
-        if (integrations.spotify.connected) count++;
+        if (integrations.steam?.connected) count++;
+        if (integrations.spotify?.connected) count++;
+        if (integrations.anime?.connected) count++;
+        if (integrations.movie?.connected) count++;
+        if (integrations.books?.connected) count++;
         return count;
+    };
+
+    // Calculate REAL profile progress based on 8 criteria
+    const getProfileProgress = () => {
+        const checks = [
+            { label: 'Jogos (Steam)', done: !!integrations.steam?.connected },
+            { label: 'Música (Spotify)', done: !!integrations.spotify?.connected },
+            { label: 'Animes (MAL)', done: !!integrations.anime?.connected },
+            { label: 'Filmes (TMDB)', done: !!integrations.movie?.connected },
+            { label: 'Livros', done: !!integrations.books?.connected },
+            { label: 'Bio', done: !!profile?.bio },
+            { label: 'Localização', done: !!profile?.location },
+            { label: 'Foto de Perfil', done: !!(profile?.photos && profile.photos.length > 0) },
+        ];
+        const done = checks.filter(c => c.done).length;
+        return { checks, done, total: checks.length, pct: Math.round((done / checks.length) * 100) };
+    };
+
+    const getTotalFavorites = () => {
+        return (integrations.steam?.favoritesCount || 0)
+            + (integrations.spotify?.favoritesCount || 0)
+            + (integrations.anime?.favoritesCount || 0)
+            + (integrations.movie?.favoritesCount || 0)
+            + (integrations.books?.favoritesCount || 0);
     };
 
     if (loading) {
@@ -661,11 +520,14 @@ export default function DashboardPage() {
     if (!isAuthenticated || !user) return null;
 
     const integrationItems = [
-        { icon: '🎮', name: 'Steam', desc: 'Your game library', connected: integrations.steam.connected },
-        { icon: '🎵', name: 'Spotify', desc: 'Top artists & songs', connected: integrations.spotify.connected },
-        { icon: '📺', name: 'MyAnimeList', desc: 'Anime watchlist', connected: false }, // Manual connection trigger
-        { icon: '🎬', name: 'TMDB', desc: 'Movies & shows', connected: false },
+        { icon: '🎮', name: 'Steam', desc: 'Biblioteca de Jogos', connected: integrations.steam?.connected, favs: integrations.steam?.favoritesCount || 0 },
+        { icon: '🎵', name: 'Spotify', desc: 'Artistas e Músicas', connected: integrations.spotify?.connected, favs: integrations.spotify?.favoritesCount || 0 },
+        { icon: '📺', name: 'MyAnimeList', desc: 'Animes Favoritos', connected: integrations.anime?.connected, favs: integrations.anime?.favoritesCount || 0 },
+        { icon: '🎬', name: 'TMDB', desc: 'Filmes e Séries', connected: integrations.movie?.connected, favs: integrations.movie?.favoritesCount || 0 },
+        { icon: '📚', name: 'Books', desc: 'Livros Favoritos', connected: integrations.books?.connected, favs: integrations.books?.favoritesCount || 0 },
     ];
+
+    const progress = getProfileProgress();
 
     return (
         <main className="min-h-screen relative overflow-hidden">
@@ -891,13 +753,25 @@ export default function DashboardPage() {
                         >
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-bold">🎮 Seus Jogos Favoritos</h2>
-                                <span className="text-sm text-gray-400">
-                                    {selectedFavorites.length}/5 selecionados
-                                </span>
+                                <div className="flex items-center gap-4">
+                                    {!integrations.steam?.connected && (
+                                        <button
+                                            onClick={() => setShowSteamModal(true)}
+                                            className="text-xs bg-[#171a21] hover:bg-[#2a475e] text-white px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-white/10"
+                                        >
+                                            <img src="/steam-icon.svg" alt="Steam" className="w-4 h-4" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                            <span>Conectar Steam</span>
+                                        </button>
+                                    )}
+                                    <span className="text-sm text-gray-400">
+                                        {selectedFavorites.length}/5 selecionados
+                                    </span>
+                                </div>
                             </div>
 
                             <p className="text-sm text-gray-400 mb-4">
-                                Selecione até 5 jogos para mostrar no seu perfil
+                                Selecione até 5 jogos para mostrar no seu perfil.
+                                {!integrations.steam?.connected && " Conecte sua Steam para ver sua biblioteca ou busque manualmente abaixo."}
                             </p>
 
                             {/* Search */}
@@ -1089,9 +963,9 @@ export default function DashboardPage() {
                                             {(animeSearchResults.length > 0 || isSearchingAnime) && (
                                                 <div className="absolute bottom-full left-0 w-full mb-2 bg-[#252525] border border-white/10 rounded-lg shadow-xl max-h-60 overflow-y-auto z-10">
                                                     {isSearchingAnime && <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>}
-                                                    {animeSearchResults.map(anime => (
+                                                    {animeSearchResults.map((anime, index) => (
                                                         <button
-                                                            key={anime.id}
+                                                            key={`${anime.id}-${index}`}
                                                             onClick={() => addAnime(anime)}
                                                             className="w-full flex items-center gap-3 p-2 hover:bg-white/5 text-left border-b border-white/5 last:border-0"
                                                         >
@@ -1264,6 +1138,7 @@ export default function DashboardPage() {
                     <Link href="/discover" className="nav-link">Discover</Link>
                     <Link href="/matches" className="nav-link">Matches</Link>
                     <Link href="/profile" className="nav-link">Profile</Link>
+                    <Link href="/integrations" className="nav-link">Integrations</Link>
                 </nav>
 
                 <div className="flex items-center gap-6">
@@ -1301,19 +1176,31 @@ export default function DashboardPage() {
                         <p className="section-title mb-6">Your Profile</p>
 
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-xl font-bold">
-                                {user.name.charAt(0).toUpperCase()}
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-xl font-bold overflow-hidden">
+                                {profile?.photos && profile.photos.length > 0 ? (
+                                    <img src={profile.photos[0]} alt={user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    user.name.charAt(0).toUpperCase()
+                                )}
                             </div>
                             <div>
                                 <p className="font-semibold">{user.name}</p>
                                 <p className="text-sm text-gray-500">{user.email}</p>
                             </div>
                         </div>
-
-                        {!profile && (
+                        {!profile ? (
                             <Link href="/onboarding" className="btn-primary w-full justify-center text-xs">
-                                Complete Profile
+                                ⚠️ Complete seu Perfil para aparecer no Discovery
                             </Link>
+                        ) : (
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowEditProfileModal(true)}
+                                    className="btn-secondary flex-1 justify-center text-xs py-2"
+                                >
+                                    Editar Perfil
+                                </button>
+                            </div>
                         )}
                     </motion.div>
 
@@ -1324,23 +1211,45 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        <p className="section-title mb-6">Your Stats</p>
+                        <p className="section-title mb-6">Suas Estatísticas</p>
 
-                        <div className="space-y-4">
+                        <div className="space-y-0">
                             <div className="flex items-center justify-between py-3 border-b border-[#252525]">
-                                <span className="text-sm text-gray-500">Integrations</span>
-                                <span className="font-semibold">{getIntegrationCount()} / 5</span>
+                                <span className="text-sm text-gray-500">Integrações</span>
+                                <span className={`font-semibold ${getIntegrationCount() === 5 ? 'text-green-400' : 'text-white'}`}>{getIntegrationCount()} / 5</span>
                             </div>
-                            <div
-                                className="flex items-center justify-between py-3 border-b border-[#252525] cursor-pointer hover:bg-white/5 transition-colors"
-                                onClick={handleOpenGamesModal}
-                            >
-                                <span className="text-sm text-gray-500">Favorites</span>
-                                <span className="font-semibold">{selectedFavorites.length} / 5</span>
+                            <div className="flex items-center justify-between py-3 border-b border-[#252525]">
+                                <span className="text-sm text-gray-500">Total Favoritos</span>
+                                <span className="font-semibold">{getTotalFavorites()} / 25</span>
+                            </div>
+                            <div className="flex items-center justify-between py-3 border-b border-[#252525]">
+                                <span className="text-sm text-gray-500">Matches</span>
+                                <span className="font-semibold">{matchesCount}</span>
                             </div>
                             <div className="flex items-center justify-between py-3">
-                                <span className="text-sm text-gray-500">Matches</span>
-                                <span className="font-semibold">0</span>
+                                <span className="text-sm text-gray-500">Likes Recebidos</span>
+                                <span className="font-semibold">{likesReceivedCount}</span>
+                            </div>
+                        </div>
+
+                        {/* Mini integration badges */}
+                        <div className="mt-4 pt-4 border-t border-[#252525]">
+                            <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-3">Integrações</p>
+                            <div className="grid grid-cols-5 gap-1.5">
+                                {integrationItems.map(item => (
+                                    <div
+                                        key={item.name}
+                                        className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg text-center transition-colors ${item.connected
+                                            ? 'bg-green-500/10 border border-green-500/20'
+                                            : 'bg-white/[0.02] border border-white/[0.04]'
+                                            }`}
+                                    >
+                                        <span className="text-base">{item.icon}</span>
+                                        <span className={`text-[9px] font-medium ${item.connected ? 'text-green-400' : 'text-gray-600'}`}>
+                                            {item.connected ? `${item.favs}/5` : '—'}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </motion.div>
@@ -1352,56 +1261,64 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                        <p className="section-title mb-6">Profile Progress</p>
+                        <p className="section-title mb-4">Progresso do Perfil</p>
 
-                        <div className="flex items-center justify-center py-6">
-                            <div className="relative w-28 h-28">
+                        <div className="flex items-center justify-center py-4">
+                            <div className="relative w-24 h-24">
                                 <svg className="w-full h-full -rotate-90">
-                                    <circle cx="56" cy="56" r="50" fill="none" stroke="#252525" strokeWidth="8" />
-                                    <circle cx="56" cy="56" r="50" fill="none" stroke="white" strokeWidth="8" strokeDasharray="314" strokeDashoffset={314 - (getIntegrationCount() / 5) * 314} strokeLinecap="round" />
+                                    <circle cx="48" cy="48" r="42" fill="none" stroke="#252525" strokeWidth="7" />
+                                    <circle
+                                        cx="48" cy="48" r="42" fill="none"
+                                        stroke={progress.pct === 100 ? '#22c55e' : progress.pct >= 50 ? '#eab308' : '#ef4444'}
+                                        strokeWidth="7"
+                                        strokeDasharray={2 * Math.PI * 42}
+                                        strokeDashoffset={2 * Math.PI * 42 - (progress.pct / 100) * 2 * Math.PI * 42}
+                                        strokeLinecap="round"
+                                        className="transition-all duration-700"
+                                    />
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-2xl font-bold">{Math.round((getIntegrationCount() / 5) * 100)}%</span>
+                                    <span className="text-xl font-bold">{progress.pct}%</span>
                                 </div>
                             </div>
                         </div>
-                        <p className="text-center text-sm text-gray-500">Complete your profile to unlock matching</p>
+
+                        {/* Checklist */}
+                        <div className="space-y-1.5 mt-2">
+                            {progress.checks.map((c, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs">
+                                    <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] ${c.done ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.04] text-gray-600'
+                                        }`}>
+                                        {c.done ? '✓' : '○'}
+                                    </span>
+                                    <span className={c.done ? 'text-gray-400' : 'text-gray-600'}>{c.label}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {progress.pct < 100 && (
+                            <Link href="/integrations" className="mt-4 block text-center text-xs text-yellow-500/70 hover:text-yellow-500 transition-colors">
+                                Complete seu perfil para desbloquear o matching
+                            </Link>
+                        )}
+                        {progress.pct === 100 && (
+                            <p className="mt-4 text-center text-xs text-green-400/70">✨ Perfil completo! Você está pronto para matches.</p>
+                        )}
                     </motion.div>
                 </div>
 
-                {/* Connect Accounts Section */}
-                <motion.div
-                    className="mt-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                >
-                    <p className="section-title mb-6">Connect Your Accounts</p>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {integrationItems.map((item) => (
-                            <button
-                                key={item.name}
-                                onClick={() => handleIntegrationClick(item.name)}
-                                disabled={connecting}
-                                className={`card p-5 text-left transition-colors group relative ${item.connected
-                                    ? 'border-green-500/50 hover:border-green-500'
-                                    : 'hover:border-[#404040]'
-                                    }`}
-                            >
-                                {item.connected && (
-                                    <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-green-500" />
-                                )}
-                                <span className="text-2xl mb-3 block group-hover:scale-110 transition-transform">{item.icon}</span>
-                                <p className="font-semibold text-sm">{item.name}</p>
-                                <p className="text-xs text-gray-500">
-                                    {item.connected ? '✓ Conectado' : item.desc}
-                                </p>
-                            </button>
-                        ))}
-                    </div>
-                </motion.div>
             </div>
+
+            <EditProfileModal
+                isOpen={showEditProfileModal}
+                onClose={() => setShowEditProfileModal(false)}
+                currentProfile={profile}
+                onSave={async () => {
+                    const res = await profilesApi.getMyProfile();
+                    if (res.success) setProfile(res.data);
+                }}
+            />
         </main>
     );
 }

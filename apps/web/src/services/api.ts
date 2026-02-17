@@ -26,6 +26,11 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Skip interceptor for login/register endpoints
+        if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register')) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
@@ -59,8 +64,13 @@ export const authApi = {
     },
 
     login: async (data: { email: string; password: string }) => {
-        const response = await api.post('/auth/login', data);
-        return response.data;
+        try {
+            const response = await api.post('/auth/login', data);
+            return response.data;
+        } catch (error) {
+            console.error('❌ API: Login failed', error);
+            throw error;
+        }
     },
 
     logout: async () => {
@@ -109,7 +119,9 @@ export const profilesApi = {
     updateProfile: async (data: {
         bio?: string;
         location?: string;
-        lookingFor?: 'friendship' | 'relationship' | 'both';
+        lookingFor?: 'friendship' | 'relationship' | 'both' | string;
+        birthDate?: string;
+        photos?: string[];
     }) => {
         const response = await api.patch('/profiles/me', data);
         return response.data;
@@ -142,7 +154,8 @@ export const integrationsApi = {
 
     // Favorites (Global)
     searchGames: async (query: string) => {
-        const response = await api.get(`/favorites/games/search?q=${encodeURIComponent(query)}`);
+        // Use Steam Store search for manual addition
+        const response = await api.get(`/integrations/steam/search?q=${encodeURIComponent(query)}`);
         return response.data;
     },
 
@@ -153,6 +166,11 @@ export const integrationsApi = {
 
     saveFavoriteGames: async (favorites: { appid: number; name: string; iconUrl?: string }[]) => {
         const response = await api.put('/favorites/games', { favorites });
+        return response.data;
+    },
+
+    saveSteamManual: async (data: { genres?: string[]; platformLinks?: any; favorites?: any[] }) => {
+        const response = await api.put('/integrations/steam/manual', data);
         return response.data;
     },
 
@@ -177,7 +195,7 @@ export const integrationsApi = {
         const response = await api.delete('/integrations/spotify');
         return response.data;
     },
-    saveSpotifyManual: async (data: { profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: any[] }) => {
+    saveSpotifyManual: async (data: { profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: any[]; platformLinks?: any }) => {
         const response = await api.put('/integrations/spotify/manual', data);
         return response.data;
     },
@@ -208,7 +226,7 @@ export const integrationsApi = {
         return response.data;
     },
 
-    saveAnimeManual: async (data: { genres?: string[]; favorites?: any[] }) => {
+    saveAnimeManual: async (data: { genres?: string[]; favorites?: any[]; profileUrl?: string; platformLinks?: any }) => {
         const response = await api.put('/integrations/anime/manual', data);
         return response.data;
     },
@@ -229,8 +247,29 @@ export const integrationsApi = {
         return response.data;
     },
 
-    saveMovieManual: async (data: { genres?: string[]; favorites?: any[] }) => {
+    saveMovieManual: async (data: { genres?: string[]; favorites?: any[]; profileUrl?: string; platformLinks?: any }) => {
         const response = await api.put('/integrations/movie/manual', data);
+        return response.data;
+    },
+
+    // Books (Google Books)
+    searchBooks: async (query: string) => {
+        const response = await api.get(`/integrations/books/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    getBookGenres: async () => {
+        const response = await api.get('/integrations/books/genres');
+        return response.data;
+    },
+
+    getBooks: async () => {
+        const response = await api.get('/integrations/books');
+        return response.data;
+    },
+
+    saveBooksManual: async (data: { genres?: string[]; favorites?: any[] }) => {
+        const response = await api.put('/integrations/books/manual', data);
         return response.data;
     },
 };

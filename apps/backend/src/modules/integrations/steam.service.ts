@@ -60,7 +60,7 @@ export class SteamService {
         }
 
         const data = await response.json();
-        return data.response?.players?.[0] || null;
+        return (data as any).response?.players?.[0] || null;
     }
 
     /**
@@ -148,14 +148,17 @@ export class SteamService {
             steamId: integration.externalId,
             profile: data.profile,
             gameCount: data.gameCount,
-            topGames: data.games
-                .sort((a: SteamGame, b: SteamGame) => b.playtime_forever - a.playtime_forever)
-                .slice(0, 10)
-                .map((g: SteamGame) => ({
-                    appid: g.appid,
-                    name: g.name,
-                    playtimeHours: Math.round(g.playtime_forever / 60)
-                })),
+            games: (data.games || []).map((g: SteamGame) => ({
+                appid: g.appid,
+                name: g.name,
+                playtimeHours: Math.round(g.playtime_forever / 60),
+                img_icon_url: g.img_icon_url,
+                img_logo_url: g.img_logo_url
+            })),
+            genres: data.genres || [],
+            favoriteGames: data.favoriteGames || [],
+            platformLinks: data.platformLinks || {},
+            manual: data.manual || false,
             syncedAt: integration.syncedAt
         };
     }

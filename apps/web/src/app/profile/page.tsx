@@ -6,28 +6,32 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store/auth';
 import { usersApi, profilesApi, integrationsApi } from '@/services/api';
 
+type BookFavorite = { id: string; title: string; imageUrl: string; authors?: string[] };
+
 export default function ProfilePage() {
     const { user, isAuthenticated } = useAuthStore();
-    const [profile, setProfile] = useState<{ bio?: string; location?: string; birthDate?: string; lookingFor?: string } | null>(null);
+    const [profile, setProfile] = useState<any>(null);
     const [favorites, setFavorites] = useState<{ appid: number; name: string; iconUrl?: string }[]>([]);
     const [steamData, setSteamData] = useState<{ connected: boolean; profile?: { profileurl: string; personaname: string }; steamId?: string } | null>(null);
     const [spotifyData, setSpotifyData] = useState<{ profileUrl?: string; playlists?: string[]; genres?: string[]; topSongs?: { name: string; artist: string; url: string; imageUrl?: string }[] } | null>(null);
     const [animeData, setAnimeData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[]; profileUrl?: string } | null>(null);
     const [movieData, setMovieData] = useState<{ genres?: string[]; favorites?: { id: number; title: string; imageUrl: string }[]; profileUrl?: string } | null>(null);
+    const [booksData, setBooksData] = useState<{ genres?: string[]; favorites?: BookFavorite[] } | null>(null);
+    const [gameGenres, setGameGenres] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             if (!isAuthenticated) return;
             try {
-                // Parallel requests
-                const [profileRes, favoritesRes, steamRes, spotifyRes, animeRes, movieRes] = await Promise.all([
+                const [profileRes, favoritesRes, steamRes, spotifyRes, animeRes, movieRes, booksRes] = await Promise.all([
                     profilesApi.getMyProfile().catch(() => ({ success: false, data: null })),
                     integrationsApi.getFavoriteGames().catch(() => ({ success: false, data: [] })),
                     integrationsApi.getSteam().catch(() => ({ success: false, data: null })),
                     integrationsApi.getSpotify().catch(() => ({ success: false, data: null })),
                     integrationsApi.getAnime().catch(() => ({ success: false, data: null })),
-                    integrationsApi.getMovie().catch(() => ({ success: false, data: null }))
+                    integrationsApi.getMovie().catch(() => ({ success: false, data: null })),
+                    integrationsApi.getBooks().catch(() => ({ success: false, data: null }))
                 ]);
 
                 if (profileRes.success) setProfile(profileRes.data);
@@ -41,6 +45,7 @@ export default function ProfilePage() {
 
                 if (steamRes.success && steamRes.data) {
                     setSteamData(steamRes.data);
+                    if (steamRes.data.genres) setGameGenres(steamRes.data.genres);
                 }
 
                 if (spotifyRes.success && spotifyRes.data) {
@@ -50,7 +55,7 @@ export default function ProfilePage() {
                         playlists: data.playlists || [],
                         genres: data.genres || (data.topArtists ? data.topArtists.flatMap((a: any) => a.genres).slice(0, 5) : []),
                         topSongs: data.topSongs || (data.topArtists ? data.topArtists.slice(0, 5).map((a: any) => ({
-                            name: a.name, // In real integration we only have artists, mapping artist to song-like structure for now or we should change UI
+                            name: a.name,
                             artist: 'Top Artist',
                             url: '',
                             imageUrl: a.imageUrl
@@ -58,13 +63,9 @@ export default function ProfilePage() {
                     });
                 }
 
-                if (animeRes.success && animeRes.data) {
-                    setAnimeData(animeRes.data);
-                }
-
-                if (movieRes.success && movieRes.data) {
-                    setMovieData(movieRes.data);
-                }
+                if (animeRes.success && animeRes.data) setAnimeData(animeRes.data);
+                if (movieRes.success && movieRes.data) setMovieData(movieRes.data);
+                if (booksRes.success && booksRes.data) setBooksData(booksRes.data);
             } catch (error) {
                 console.error('Error loading profile data:', error);
             } finally {
@@ -79,364 +80,353 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white">
-                <div className="spinner w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="min-h-screen flex items-center justify-center bg-[#060606] text-white">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
             </div>
         );
     }
 
-    const mainGame = favorites[0];
-    const otherGames = favorites.slice(1);
-    const mainSong = spotifyData?.topSongs?.[0];
-    const otherSongs = spotifyData?.topSongs?.slice(1) || [];
+    /* ── Helpers ── */
 
-    // Helper to get Spotify Embed URL
-    const getEmbedUrl = (url: string) => {
-        try {
-            const urlObj = new URL(url);
-            // https://open.spotify.com/track/ID -> https://open.spotify.com/embed/track/ID
-            if (urlObj.pathname.startsWith('/track/') || urlObj.pathname.startsWith('/playlist/') || urlObj.pathname.startsWith('/album/')) {
-                return `https://open.spotify.com/embed${urlObj.pathname}`;
-            }
-            return null;
-        } catch {
-            return null;
-        }
+    const fadeUp = (delay = 0) => ({
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.55, delay, ease: [0.25, 0.46, 0.45, 0.94] }
+    });
+
+    const GenreTags = ({ genres }: { genres: string[] }) => (
+        <div className="flex flex-wrap gap-1.5">
+            {genres.map((g, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/[0.05] border border-white/[0.08] text-white/50">
+                    {g}
+                </span>
+            ))}
+        </div>
+    );
+
+    const EmptyState = ({ icon, label }: { icon: string; label: string }) => (
+        <div className="py-10 text-center rounded-2xl border border-dashed border-white/[0.06]">
+            <span className="text-2xl mb-2 block opacity-20">{icon}</span>
+            <p className="text-white/25 text-xs mb-2">Nenhum favorito</p>
+            <Link href="/integrations" className="text-white/40 text-[11px] hover:text-white/70 underline underline-offset-4 transition-colors">
+                Adicionar {label}
+            </Link>
+        </div>
+    );
+
+    const SectionHeader = ({ icon, title, link, linkLabel }: { icon: string; title: string; link?: string; linkLabel?: string }) => (
+        <div className="flex items-center justify-between mb-4">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-white/90 tracking-tight">
+                <span className="text-lg">{icon}</span>
+                {title}
+            </h2>
+            {link && (
+                <a href={link} target="_blank" rel="noopener noreferrer"
+                    className="text-[10px] font-semibold text-white/25 hover:text-white/50 uppercase tracking-[0.15em] transition-colors">
+                    {linkLabel || 'Perfil'} ↗
+                </a>
+            )}
+        </div>
+    );
+
+    // Star badge for #1 items
+    const FavBadge = () => (
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/90 backdrop-blur-sm">
+            <span className="text-[10px]">⭐</span>
+            <span className="text-[9px] font-bold text-black uppercase tracking-wider">Favorito</span>
+        </div>
+    );
+
+    /* ── Poster Card (anime / movies / books) ── */
+    const PosterCard = ({ imageUrl, title, href, isFavorite, fallbackIcon }: {
+        imageUrl?: string; title: string; href?: string; isFavorite?: boolean; fallbackIcon: string;
+    }) => {
+        const inner = (
+            <div className={`group relative rounded-xl overflow-hidden bg-[#0c0c0c] border border-white/[0.04] transition-all duration-300 hover:border-white/[0.1] hover:shadow-lg hover:shadow-black/40 ${isFavorite ? 'ring-1 ring-yellow-500/30' : ''}`}>
+                <div className="aspect-[2/3] relative">
+                    {isFavorite && <FavBadge />}
+                    {imageUrl ? (
+                        <img src={imageUrl} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl opacity-15">{fallbackIcon}</div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="text-[11px] font-semibold text-white/90 leading-tight line-clamp-2">{title}</p>
+                </div>
+            </div>
+        );
+        if (href) return <a href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
+        return inner;
     };
 
+    /* ── Game Card ── */
+    const GameCard = ({ game, isFavorite, large }: { game: typeof favorites[0]; isFavorite?: boolean; large?: boolean }) => (
+        <a
+            href={`https://store.steampowered.com/app/${game.appid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`group relative rounded-xl overflow-hidden bg-[#0c0c0c] border border-white/[0.04] transition-all duration-300 hover:border-white/[0.1] hover:shadow-lg hover:shadow-black/40 ${isFavorite ? 'ring-1 ring-yellow-500/30' : ''}`}
+        >
+            <div className={`${large ? 'aspect-[21/9]' : 'aspect-[16/7]'} relative`}>
+                {isFavorite && <FavBadge />}
+                <img
+                    src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`}
+                    alt={game.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className={`font-semibold text-white/90 leading-tight ${large ? 'text-lg' : 'text-xs'}`}>{game.name}</p>
+            </div>
+        </a>
+    );
+
+    const mainGame = favorites[0];
+    const otherGames = favorites.slice(1);
+
     return (
-        <main className="min-h-screen bg-[#0a0a0a] text-white pb-20 overflow-x-hidden">
-            {/* Header / Navigation */}
-            <header className="fixed top-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/5 px-6 py-4 flex justify-between items-center">
-                <Link href="/dashboard" className="text-xl font-bold tracking-wider">
-                    MATCHGAME
-                </Link>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold">
-                    {user?.name.charAt(0).toUpperCase()}
+        <main className="min-h-screen bg-[#060606] text-white">
+            {/* Header */}
+            <header className="fixed top-0 w-full z-50 bg-[#060606]/90 backdrop-blur-xl border-b border-white/[0.04]">
+                <div className="max-w-4xl mx-auto px-5 py-3.5 flex justify-between items-center">
+                    <Link href="/dashboard" className="text-sm font-bold tracking-[0.2em] text-white/70 hover:text-white transition-colors">
+                        MATCHGAME
+                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link href="/integrations" className="text-xs text-white/35 hover:text-white/70 transition-colors">Integrações</Link>
+                        <Link href="/dashboard" className="text-xs text-white/35 hover:text-white/70 transition-colors">Dashboard</Link>
+                    </div>
                 </div>
             </header>
 
-            {/* Hero Profile Section */}
-            <section className="pt-32 pb-12 px-6 max-w-6xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="flex flex-col md:flex-row gap-8 items-end"
-                >
-                    <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-1">
-                        <div className="w-full h-full rounded-full bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-                            <span className="text-4xl md:text-6xl font-bold text-gray-400">
-                                {user?.name.charAt(0).toUpperCase()}
-                            </span>
+            <div className="max-w-4xl mx-auto px-5 pt-24 pb-20">
+
+                {/* ── Profile Hero ── */}
+                <motion.section {...fadeUp(0)} className="mb-12">
+                    <div className="flex items-start gap-5">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/[0.02] overflow-hidden flex-shrink-0 border border-white/[0.06]">
+                            {profile?.photos && profile.photos.length > 0 ? (
+                                <img src={profile.photos[0]} alt={user?.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xl font-bold text-white/30">
+                                    {user?.name.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-2xl font-bold tracking-tight mb-0.5">{user?.name}</h1>
+                            <p className="text-white/35 text-sm mb-2 line-clamp-2">{profile?.bio || 'Sem bio ainda...'}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {profile?.location && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] text-white/35 bg-white/[0.03] border border-white/[0.05]">
+                                        📍 {profile.location}
+                                    </span>
+                                )}
+                                {profile?.lookingFor && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] text-white/35 bg-white/[0.03] border border-white/[0.05]">
+                                        Procurando: {profile.lookingFor}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
+                </motion.section>
 
-                    <div className="flex-1 mb-4">
-                        <h1 className="text-4xl md:text-5xl font-bold mb-2">{user?.name}</h1>
-                        <p className="text-gray-400 text-lg mb-4">{profile?.bio || 'No bio yet...'}</p>
+                {/* ═══════════════════════════════════════ */}
+                {/* ── 🎮 GAMES ── */}
+                {/* ═══════════════════════════════════════ */}
+                <motion.section {...fadeUp(0.08)} className="mb-12">
+                    <SectionHeader
+                        icon="🎮"
+                        title="Jogos Favoritos"
+                        link={steamData?.profile?.profileurl || (steamData?.steamId ? `https://steamcommunity.com/profiles/${steamData.steamId}` : undefined)}
+                        linkLabel="Steam"
+                    />
 
-                        <div className="flex flex-wrap gap-3">
-                            {profile?.location && (
-                                <span className="px-3 py-1 rounded-full bg-white/5 text-sm flex items-center gap-2">
-                                    📍 {profile.location}
-                                </span>
-                            )}
-                            {profile?.lookingFor && (
-                                <span className="px-3 py-1 rounded-full bg-white/5 text-sm flex items-center gap-2">
-                                    ❤️ Looking for: {profile.lookingFor}
-                                </span>
-                            )}
-                            <Link href="/dashboard" className="px-4 py-1 rounded-full bg-blue-600 hover:bg-blue-500 text-sm font-medium transition-colors">
-                                Edit Profile
-                            </Link>
-                        </div>
-                    </div>
-                </motion.div>
-            </section>
-
-            {/* Content Grid */}
-            <div className="px-6 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-                {/* Left Column: Games */}
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    className="space-y-8"
-                >
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <span className="text-purple-400">🎮</span> Favorite Games
-                        {steamData?.profile?.profileurl && (
-                            <a href={steamData.profile.profileurl} target="_blank" className="ml-auto text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
-                                Steam Profile ↗
-                            </a>
-                        )}
-                        {!steamData?.profile?.profileurl && steamData?.connected && steamData?.steamId && (
-                            <a href={`https://steamcommunity.com/profiles/${steamData.steamId}`} target="_blank" className="ml-auto text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
-                                Steam Profile ↗
-                            </a>
-                        )}
-                    </h2>
+                    {gameGenres.length > 0 && <div className="mb-4"><GenreTags genres={gameGenres} /></div>}
 
                     {mainGame ? (
-                        <a
-                            href={`https://store.steampowered.com/app/${mainGame.appid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative group rounded-2xl overflow-hidden aspect-video bg-[#1a1a1a] border border-white/10 block cursor-pointer transition-transform hover:scale-[1.02]"
-                        >
-                            {mainGame.iconUrl ? (
-                                <img
-                                    src={mainGame.iconUrl}
-                                    alt={mainGame.name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).src = `https://cdn.cloudflare.steamstatic.com/steam/apps/${mainGame.appid}/header.jpg`
-                                    }}
-                                />
-                            ) : (
-                                <img
-                                    src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${mainGame.appid}/header.jpg`}
-                                    alt={mainGame.name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
+                        <div className="space-y-2.5">
+                            <GameCard game={mainGame} isFavorite large />
+                            {otherGames.length > 0 && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                                    {otherGames.map(game => (
+                                        <GameCard key={game.appid} game={game} />
+                                    ))}
+                                </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 flex flex-col justify-end">
-                                <span className="text-purple-400 text-sm font-bold uppercase tracking-wider mb-1">Top Pick</span>
-                                <h3 className="text-3xl font-bold">{mainGame.name}</h3>
-                                <span className="absolute top-4 right-4 text-[10px] bg-sky-600 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold tracking-wide">STEAM ↗</span>
-                            </div>
-                        </a>
-                    ) : (
-                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
-                            <p className="text-gray-400">No favorite games selected</p>
-                            <Link href="/dashboard" className="text-blue-400 text-sm hover:underline mt-2 inline-block">
-                                Add games
-                            </Link>
                         </div>
+                    ) : (
+                        <EmptyState icon="🎮" label="jogos" />
+                    )}
+                </motion.section>
+
+                {/* ═══════════════════════════════════════ */}
+                {/* ── 🎵 MUSIC ── */}
+                {/* ═══════════════════════════════════════ */}
+                <motion.section {...fadeUp(0.14)} className="mb-12">
+                    <SectionHeader
+                        icon="🎵"
+                        title="Gosto Musical"
+                        link={spotifyData?.profileUrl}
+                        linkLabel="Spotify"
+                    />
+
+                    {spotifyData?.genres && spotifyData.genres.length > 0 && (
+                        <div className="mb-4"><GenreTags genres={spotifyData.genres} /></div>
                     )}
 
-                    {otherGames.length > 0 && (
-                        <div className="grid grid-cols-2 gap-4">
-                            {otherGames.map(game => (
-                                <a
-                                    key={game.appid}
-                                    href={`https://store.steampowered.com/app/${game.appid}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-[#1a1a1a] p-3 rounded-xl border border-white/5 hover:border-white/20 transition-all flex items-center gap-3 block hover:bg-white/5 group"
+                    {spotifyData?.topSongs && spotifyData.topSongs.length > 0 ? (
+                        <div className="rounded-xl border border-white/[0.04] bg-[#0a0a0a] divide-y divide-white/[0.03] overflow-hidden">
+                            {spotifyData.topSongs.map((song, i) => (
+                                <div
+                                    key={i}
+                                    className={`flex items-center gap-3.5 px-4 py-3 hover:bg-white/[0.02] transition-colors group ${i === 0 ? 'bg-yellow-500/[0.03]' : ''}`}
                                 >
-                                    {game.iconUrl && (
-                                        <img
-                                            src={game.iconUrl}
-                                            alt={game.name}
-                                            className="w-10 h-10 rounded-lg bg-[#252525]"
-                                        />
+                                    {/* Position / Star */}
+                                    {i === 0 ? (
+                                        <span className="text-yellow-500 text-xs w-5 text-center flex-shrink-0">⭐</span>
+                                    ) : (
+                                        <span className="text-[11px] font-mono text-white/20 w-5 text-center flex-shrink-0">{i + 1}</span>
                                     )}
-                                    <span className="font-medium text-sm truncate flex-1">{game.name}</span>
-                                    <span className="text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">↗</span>
-                                </a>
-                            ))}
-                        </div>
-                    )}
-                </motion.div>
 
-                {/* Right Column: Music */}
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                    className="space-y-8"
-                >
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <span className="text-green-400">🎵</span> Music Taste
-                    </h2>
+                                    {/* Album Art */}
+                                    {song.imageUrl ? (
+                                        <img src={song.imageUrl} alt={song.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-sm flex-shrink-0">🎵</div>
+                                    )}
 
-                    {/* Genres Tags */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {spotifyData?.genres && spotifyData.genres.map((genre, i) => (
-                            <span key={i} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors capitalize">
-                                {genre}
-                            </span>
-                        ))}
-                        {spotifyData?.profileUrl && (
-                            <a href={spotifyData.profileUrl} target="_blank" className="ml-auto text-xs text-green-400 hover:text-green-300 flex items-center gap-1">
-                                Spotify Profile ↗
-                            </a>
-                        )}
-                    </div>
-
-                    {/* Main Song Embed */}
-                    {mainSong && mainSong.url && getEmbedUrl(mainSong.url) ? (
-                        <div className="rounded-2xl overflow-hidden bg-[#1a1a1a] shadow-2xl shadow-green-900/10">
-                            <iframe
-                                style={{ borderRadius: '12px' }}
-                                src={getEmbedUrl(mainSong.url)!}
-                                width="100%"
-                                height="152"
-                                frameBorder="0"
-                                allowFullScreen
-                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                                loading="lazy"
-                            />
-                        </div>
-                    ) : mainSong ? (
-                        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#1db954]/20 to-[#191414] border border-green-500/20">
-                            <h3 className="text-xl font-bold text-green-400 mb-1">{mainSong.name}</h3>
-                            <p className="text-white/60">{mainSong.artist}</p>
-                            <a href={mainSong.url} target="_blank" className="text-xs text-white/40 hover:text-white mt-4 block">Open in Spotify ↗</a>
-                        </div>
-                    ) : (
-                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
-                            <p className="text-gray-400">No music profile setup</p>
-                            <Link href="/dashboard" className="text-green-400 text-sm hover:underline mt-2 inline-block">
-                                Setup music profile
-                            </Link>
-                        </div>
-                    )}
-
-                    {/* Top Songs List */}
-                    {otherSongs.length > 0 && (
-                        <div className="space-y-2">
-                            <h3 className="text-sm uppercase tracking-wider text-gray-500 font-bold mb-3">Top Rotation</h3>
-                            {otherSongs.map((song, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <span className="text-gray-600 font-mono text-sm w-4">{i + 2}</span>
-                                        {song.imageUrl && (
-                                            <img src={song.imageUrl} alt={song.name} className="w-10 h-10 rounded bg-[#252525] object-cover" />
-                                        )}
-                                        <div className="min-w-0">
-                                            <p className="font-medium truncate">{song.name}</p>
-                                            <p className="text-xs text-gray-500 truncate">{song.artist}</p>
-                                        </div>
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-medium truncate ${i === 0 ? 'text-white' : 'text-white/75'}`}>{song.name}</p>
+                                        <p className="text-[11px] text-white/30 truncate">{song.artist}</p>
                                     </div>
+
+                                    {/* Link */}
                                     {song.url && (
-                                        <a href={song.url} target="_blank" className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-white transition-opacity">
+                                        <a href={song.url} target="_blank" className="opacity-0 group-hover:opacity-100 text-white/25 hover:text-white/50 transition-all text-xs flex-shrink-0">
                                             ↗
                                         </a>
                                     )}
                                 </div>
                             ))}
                         </div>
+                    ) : (
+                        <EmptyState icon="🎵" label="músicas" />
                     )}
-                </motion.div>
+                </motion.section>
 
-                {/* Anime Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
-                    className="space-y-8"
-                >
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <span className="text-pink-400">📺</span> Anime Favorites
-                        {animeData?.profileUrl && (
-                            <a href={animeData.profileUrl} target="_blank" className="ml-auto text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1">
-                                MyAnimeList Profile ↗
-                            </a>
-                        )}
-                    </h2>
+                {/* ═══════════════════════════════════════ */}
+                {/* ── 📺 ANIME ── */}
+                {/* ═══════════════════════════════════════ */}
+                <motion.section {...fadeUp(0.20)} className="mb-12">
+                    <SectionHeader
+                        icon="📺"
+                        title="Animes"
+                        link={animeData?.profileUrl}
+                        linkLabel="MAL"
+                    />
 
-                    {/* Anime Genres */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {animeData?.genres && animeData.genres.map((genre, i) => (
-                            <span key={i} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
-                                {genre}
-                            </span>
-                        ))}
-                    </div>
+                    {animeData?.genres && animeData.genres.length > 0 && (
+                        <div className="mb-4"><GenreTags genres={animeData.genres} /></div>
+                    )}
 
-                    {/* Anime List */}
                     {animeData?.favorites && animeData.favorites.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {animeData.favorites.map((anime) => (
-                                <a
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5">
+                            {animeData.favorites.map((anime, i) => (
+                                <PosterCard
                                     key={anime.id}
+                                    imageUrl={anime.imageUrl}
+                                    title={anime.title}
                                     href={`https://myanimelist.net/anime/${anime.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all block cursor-pointer"
-                                >
-                                    {anime.imageUrl ? (
-                                        <img src={anime.imageUrl} alt={anime.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-4xl">📺</div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                        <span className="text-sm font-bold text-white line-clamp-2">{anime.title}</span>
-                                        <span className="absolute top-2 right-2 text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">MAL ↗</span>
-                                    </div>
-                                </a>
+                                    isFavorite={i === 0}
+                                    fallbackIcon="📺"
+                                />
                             ))}
                         </div>
                     ) : (
-                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
-                            <p className="text-gray-400">No anime favorites yet</p>
-                            <Link href="/dashboard" className="text-pink-400 text-sm hover:underline mt-2 inline-block">
-                                Add anime
-                            </Link>
-                        </div>
+                        <EmptyState icon="📺" label="animes" />
                     )}
-                </motion.div>
+                </motion.section>
 
-                {/* Movie Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.5 }}
-                    className="space-y-8"
-                >
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <span className="text-red-400">🎬</span> Movie Favorites
-                        {movieData?.profileUrl && (
-                            <a href={movieData.profileUrl} target="_blank" className="ml-auto text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-                                TMDB Profile ↗
-                            </a>
-                        )}
-                    </h2>
+                {/* ═══════════════════════════════════════ */}
+                {/* ── 🎬 MOVIES ── */}
+                {/* ═══════════════════════════════════════ */}
+                <motion.section {...fadeUp(0.26)} className="mb-12">
+                    <SectionHeader
+                        icon="🎬"
+                        title="Filmes"
+                        link={movieData?.profileUrl}
+                        linkLabel="TMDB"
+                    />
 
-                    {/* Movie Genres */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {movieData?.genres && movieData.genres.map((genre, i) => (
-                            <span key={i} className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
-                                {genre}
-                            </span>
-                        ))}
-                    </div>
+                    {movieData?.genres && movieData.genres.length > 0 && (
+                        <div className="mb-4"><GenreTags genres={movieData.genres} /></div>
+                    )}
 
-                    {/* Movie List */}
                     {movieData?.favorites && movieData.favorites.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {movieData.favorites.map((movie) => (
-                                <a
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5">
+                            {movieData.favorites.map((movie, i) => (
+                                <PosterCard
                                     key={movie.id}
+                                    imageUrl={movie.imageUrl}
+                                    title={movie.title}
                                     href={`https://www.themoviedb.org/movie/${movie.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-white/20 transition-all block cursor-pointer"
-                                >
-                                    {movie.imageUrl ? (
-                                        <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                        <span className="text-sm font-bold text-white line-clamp-2">{movie.title}</span>
-                                        <span className="absolute top-2 right-2 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">TMDB ↗</span>
-                                    </div>
-                                </a>
+                                    isFavorite={i === 0}
+                                    fallbackIcon="🎬"
+                                />
                             ))}
                         </div>
                     ) : (
-                        <div className="p-8 rounded-2xl bg-[#1a1a1a] border border-dashed border-white/20 text-center">
-                            <p className="text-gray-400">No movie favorites yet</p>
-                            <Link href="/dashboard" className="text-red-400 text-sm hover:underline mt-2 inline-block">
-                                Add movies
-                            </Link>
-                        </div>
+                        <EmptyState icon="🎬" label="filmes" />
                     )}
+                </motion.section>
+
+                {/* ═══════════════════════════════════════ */}
+                {/* ── 📚 BOOKS ── */}
+                {/* ═══════════════════════════════════════ */}
+                <motion.section {...fadeUp(0.32)} className="mb-12">
+                    <SectionHeader icon="📚" title="Livros" />
+
+                    {booksData?.genres && booksData.genres.length > 0 && (
+                        <div className="mb-4"><GenreTags genres={booksData.genres} /></div>
+                    )}
+
+                    {booksData?.favorites && booksData.favorites.length > 0 ? (
+                        <div className="grid grid-cols-3 md:grid-cols-5 gap-2.5">
+                            {booksData.favorites.map((book, i) => (
+                                <PosterCard
+                                    key={book.id}
+                                    imageUrl={book.imageUrl}
+                                    title={book.title}
+                                    isFavorite={i === 0}
+                                    fallbackIcon="📚"
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <EmptyState icon="📚" label="livros" />
+                    )}
+                </motion.section>
+
+                {/* ── Footer ── */}
+                <motion.div {...fadeUp(0.38)} className="flex justify-center gap-3 pt-8 border-t border-white/[0.04]">
+                    <Link
+                        href="/integrations"
+                        className="px-5 py-2 rounded-xl text-[11px] font-medium text-white/40 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60 transition-all"
+                    >
+                        Configurar Integrações
+                    </Link>
+                    <Link
+                        href="/dashboard"
+                        className="px-5 py-2 rounded-xl text-[11px] font-medium text-white/40 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:text-white/60 transition-all"
+                    >
+                        Voltar ao Dashboard
+                    </Link>
                 </motion.div>
             </div>
         </main>

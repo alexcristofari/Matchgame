@@ -3,6 +3,7 @@ import { prisma } from '../../shared/db';
 import { authMiddleware, AuthRequest } from '../../shared/middleware/auth.middleware';
 import { z } from 'zod';
 import { encryption } from '../../shared/utils/encryption';
+import { matchesService } from './matches.service';
 
 export const matchesRouter = Router();
 
@@ -41,6 +42,13 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
 
         // Fetch potential matches
         // In a real app, uses complex algorithms. Here: random users not in excluded list.
+        // 1. Fetch current user's favorites (ONCE)
+        const currentUserFavorites = await prisma.favorite.findMany({
+            where: { userId },
+            include: { mediaItem: true }
+        });
+
+        // Fetch potential matches with their favorites & mediaItems (ONCE)
         const candidates = await prisma.user.findMany({
             where: {
                 id: { notIn: Array.from(excludedIds) }
@@ -61,32 +69,48 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
                     }
                 },
                 favorites: {
-                    select: {
-                        category: true,
-                        itemName: true,
-                        itemImageUrl: true,
-                        position: true
-                    }
+                    include: { // Include MediaItem for genre calculation
+                        mediaItem: true
+                    },
+                    // We can't use 'select' and 'include' together easily at this level if we want full objects
+                    // So we pull the full Favorite object which is fine
                 },
-                integrations: {
-                    select: {
-                        type: true,
-                        data: true
-                    }
-                }
+                // integrations: {
+                //     select: {
+                //         type: true,
+                //         data: true
+                //     }
+                // }
             }
         });
 
+        // Calculate compatibility scores (IN MEMORY - FAST)
+        const scoredCandidates = candidates.map((user) => {
+            const score = matchesService.calculateCompatibilityFromFavorites(currentUserFavorites, user.favorites);
+            return { user, score };
+        });
+
+        // Sort by score descending
+        scoredCandidates.sort((a, b) => b.score - a.score);
+
         // Format data for frontend
-        const recommendations = candidates.map(user => {
+        const recommendations = scoredCandidates.map(({ user, score }) => {
             const photos = user.profile?.photos ? JSON.parse(user.profile.photos) : [];
             const age = user.profile?.birthDate
                 ? new Date().getFullYear() - new Date(user.profile.birthDate).getFullYear()
                 : null;
 
             // Get top items
-            const topGame = user.favorites.find(f => f.category === 'games' && f.position === 1);
-            const topSong = user.favorites.find(f => f.category === 'music' && f.position === 1); // logic might need adjustment if using integration data
+            // Sort by position to get the #1 item
+            const gameFavs = user.favorites.filter(f => f.category === 'games').sort((a, b) => a.position - b.position);
+            const musicFavs = user.favorites.filter(f => f.category === 'music').sort((a, b) => a.position - b.position);
+            const movieFavs = user.favorites.filter(f => f.category === 'movies').sort((a, b) => a.position - b.position);
+            const animeFavs = user.favorites.filter(f => f.category === 'anime').sort((a, b) => a.position - b.position);
+
+            const topGame = gameFavs[0];
+            const topSong = musicFavs[0];
+            const topMovie = movieFavs[0];
+            const topAnime = animeFavs[0];
 
             return {
                 id: user.id,
@@ -94,13 +118,22 @@ matchesRouter.get('/recommendations', authMiddleware, async (req: AuthRequest, r
                 age,
                 bio: user.profile?.bio,
                 location: user.profile?.location,
+                score, // <--- Added Score
                 photos,
-                favoriteGame: user.profile?.favoriteGame,
-                favoriteMovie: user.profile?.favoriteMovie,
-                favoriteMusic: user.profile?.favoriteMusic,
+                // Fallback to favorites table if profile strings are empty
+                favoriteGame: user.profile?.favoriteGame || topGame?.itemName || (gameFavs.length > 0 ? gameFavs[0].itemName : null),
+                favoriteMovie: user.profile?.favoriteMovie || topMovie?.itemName || topAnime?.itemName || (movieFavs.length > 0 ? movieFavs[0].itemName : null),
+                favoriteMusic: user.profile?.favoriteMusic || topSong?.itemName || (musicFavs.length > 0 ? musicFavs[0].itemName : null),
+
                 // Top items from favorites table (fallback or additional)
                 topGame: topGame ? { name: topGame.itemName, image: topGame.itemImageUrl } : null,
                 topSong: topSong ? { name: topSong.itemName, image: topSong.itemImageUrl } : null,
+
+                // Full favorite lists for detailed view
+                games: gameFavs.map(f => ({ name: f.itemName, image: f.itemImageUrl })),
+                movies: movieFavs.map(f => ({ title: f.itemName, image: f.itemImageUrl })),
+                music: musicFavs.map(f => ({ name: f.itemName, image: f.itemImageUrl })),
+                anime: animeFavs.map(f => ({ title: f.itemName, image: f.itemImageUrl }))
             };
         });
 

@@ -147,11 +147,54 @@ export default function SwipeCard({ user, onSwipe, active }: SwipeCardProps) {
                     <div className={`text-sm opacity-80 mb-4 transition-all duration-300 ${showDetails ? 'max-h-[300px] overflow-y-auto' : 'line-clamp-2'}`}>
                         {user.bio}
                         {showDetails && (
-                            <div className="mt-4 pt-4 border-t border-white/10 pointer-events-auto cursor-text" onPointerDown={(e) => e.stopPropagation()}>
-                                <p className="text-xs text-gray-400 mb-2">FULL DEBUG DATA:</p>
-                                <pre className="text-[10px] bg-black/50 p-2 rounded overflow-x-auto select-text">
-                                    {JSON.stringify(user, null, 2)}
-                                </pre>
+                            <div className="mt-6 space-y-4 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
+                                {/* Games */}
+                                {user.games && user.games.length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Favorite Games</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {user.games.map((game: any, i: number) => (
+                                                <span key={i} className="bg-white/10 px-2 py-1 rounded text-xs">{game.name}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Movies */}
+                                {user.movies && user.movies.length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Favorite Movies</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {user.movies.map((movie: any, i: number) => (
+                                                <span key={i} className="bg-white/10 px-2 py-1 rounded text-xs">{movie.title}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Anime */}
+                                {user.anime && user.anime.length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Favorite Anime</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {user.anime.map((anime: any, i: number) => (
+                                                <span key={i} className="bg-white/10 px-2 py-1 rounded text-xs">{anime.title}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Music */}
+                                {user.music && user.music.length > 0 && (
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Favorite Music</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {user.music.map((music: any, i: number) => (
+                                                <span key={i} className="bg-white/10 px-2 py-1 rounded text-xs">{music.name}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

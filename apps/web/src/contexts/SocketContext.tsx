@@ -52,7 +52,10 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         socketInstance.on('connect_error', (err) => {
-            console.error('Socket Connection Error:', err.message);
+            // Suppress recurring auth errors to avoid console spam
+            if (err.message !== 'Authentication error') {
+                console.error('Socket Connection Error:', err.message);
+            }
         });
 
         setSocket(socketInstance);

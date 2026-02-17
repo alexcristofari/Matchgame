@@ -4,7 +4,7 @@ export const createProfileSchema = z.object({
     bio: z.string().max(500, 'Bio muito longa').optional(),
     birthDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
     location: z.string().optional(),
-    lookingFor: z.enum(['friendship', 'relationship', 'both']).default('both'),
+    lookingFor: z.enum(['friendship', 'relationship', 'both', 'Duo para Ranked', 'Amizade', 'Chat', 'Team']).default('both'),
     photos: z.array(z.string().url()).max(6, 'Máximo de 6 fotos').default([])
 });
 

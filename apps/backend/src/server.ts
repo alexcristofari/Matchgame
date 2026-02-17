@@ -27,8 +27,14 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    try {
+        await import('./shared/db').then(m => m.prisma.$queryRaw`SELECT 1`);
+        res.json({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() });
+    } catch (error) {
+        console.error('Health check failed:', error);
+        res.status(500).json({ status: 'error', db: 'disconnected', error: String(error) });
+    }
 });
 
 // API Routes

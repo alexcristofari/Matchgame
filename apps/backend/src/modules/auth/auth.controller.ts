@@ -33,15 +33,18 @@ authRouter.post('/register', async (req: Request, res: Response) => {
 
 // POST /api/auth/login
 authRouter.post('/login', async (req: Request, res: Response) => {
+    console.log('Login attempt for:', req.body.email);
     try {
         const input = loginSchema.parse(req.body);
         const result = await AuthService.login(input);
+        console.log('Login success for:', req.body.email);
 
         res.json({
             success: true,
             data: result
         });
     } catch (error) {
+        console.error('Login error:', error);
         if (error instanceof ZodError) {
             return res.status(400).json({
                 success: false,

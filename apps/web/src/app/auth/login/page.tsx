@@ -7,48 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authApi } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 
-// Animated background stars component
-const StarField = () => {
-    const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([]);
-
-    useEffect(() => {
-        const generatedStars = Array.from({ length: 50 }, (_, i) => ({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 2 + 1,
-            delay: Math.random() * 3
-        }));
-        setStars(generatedStars);
-    }, []);
-
-    return (
-        <div className="absolute inset-0 overflow-hidden">
-            {stars.map((star) => (
-                <motion.div
-                    key={star.id}
-                    className="absolute rounded-full bg-white"
-                    style={{
-                        left: `${star.x}%`,
-                        top: `${star.y}%`,
-                        width: star.size,
-                        height: star.size,
-                    }}
-                    animate={{
-                        opacity: [0.2, 1, 0.2],
-                        scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                        duration: 2 + Math.random() * 2,
-                        repeat: Infinity,
-                        delay: star.delay,
-                    }}
-                />
-            ))}
-        </div>
-    );
-};
-
 // Gradient orb component
 const GradientOrb = ({ className }: { className?: string }) => (
     <motion.div
@@ -330,33 +288,18 @@ export default function LoginPage() {
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <FormInput
-                            label="email"
+                            label="Email"
                             type="email"
                             value={formData.email}
                             onChange={(value) => setFormData({ ...formData, email: value })}
                         />
 
                         <FormInput
-                            label="senha"
+                            label="Senha"
                             type="password"
                             value={formData.password}
                             onChange={(value) => setFormData({ ...formData, password: value })}
                         />
-
-                        {/* Forgot password link */}
-                        <motion.div
-                            className="text-right"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.5 }}
-                        >
-                            <Link
-                                href="#"
-                                className="text-gray-500 text-sm hover:text-pink-400 transition-colors underline underline-offset-4"
-                            >
-                                esqueci minha senha
-                            </Link>
-                        </motion.div>
 
                         {/* Submit Button */}
                         <motion.div
@@ -371,35 +314,6 @@ export default function LoginPage() {
                         </motion.div>
                     </form>
 
-                    {/* Divider */}
-                    <motion.div
-                        className="flex items-center gap-4 my-10"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.7 }}
-                    >
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
-                        <span className="text-zinc-600 text-sm">ou continue com</span>
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
-                    </motion.div>
-
-                    {/* Social Login Buttons */}
-                    <motion.div
-                        className="grid grid-cols-2 gap-4"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 }}
-                    >
-                        <button className="flex items-center justify-center gap-3 py-4 border-2 border-zinc-800 rounded-xl text-gray-400 hover:border-zinc-600 hover:text-white hover:bg-zinc-900/50 transition-all duration-300 group">
-                            <span className="text-xl group-hover:scale-110 transition-transform">🎮</span>
-                            <span className="text-sm font-medium">Steam</span>
-                        </button>
-                        <button className="flex items-center justify-center gap-3 py-4 border-2 border-zinc-800 rounded-xl text-gray-400 hover:border-zinc-600 hover:text-white hover:bg-zinc-900/50 transition-all duration-300 group">
-                            <span className="text-xl group-hover:scale-110 transition-transform">🎵</span>
-                            <span className="text-sm font-medium">Spotify</span>
-                        </button>
-                    </motion.div>
-
                     {/* Register Link */}
                     <motion.p
                         className="text-center text-gray-500 mt-10"
@@ -407,7 +321,7 @@ export default function LoginPage() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.9 }}
                     >
-                        ainda não tenho uma conta?{' '}
+                        ainda não tem uma conta?{' '}
                         <Link
                             href="/auth/register"
                             className="text-white font-medium hover:text-pink-400 transition-colors underline underline-offset-4"
@@ -433,9 +347,6 @@ export default function LoginPage() {
                 {/* Overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black" />
 
-                {/* Star field animation */}
-                <StarField />
-
                 {/* Bottom gradient */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
 
@@ -446,12 +357,12 @@ export default function LoginPage() {
                     transition={{ delay: 1, duration: 0.8 }}
                     className="absolute bottom-16 left-16 right-16"
                 >
-                    <h2 className="text-4xl font-bold text-white mb-4">
-                        Encontre seu squad
-                    </h2>
-                    <p className="text-gray-300 text-lg max-w-md">
-                        Conecte-se com gamers que compartilham seu gosto em jogos, música e muito mais.
-                    </p>
+                    <blockquote className="text-2xl font-light text-white mb-4 italic font-serif leading-relaxed">
+                        "O encontro de duas personalidades assemelha-se ao contato de duas substâncias químicas: se houver alguma reação, ambas são transformadas."
+                    </blockquote>
+                    <cite className="text-gray-400 text-sm block font-mono uppercase tracking-widest">
+                        — Carl Jung
+                    </cite>
                 </motion.div>
             </div>
         </main>

@@ -3,10 +3,12 @@ import { SteamService } from './steam.service';
 import { SpotifyService } from './spotify.service';
 import { AnimeService } from './anime.service';
 import { MovieService } from './movie.service';
+import { BooksService } from './books.service';
 import { steamConnectSchema } from './integrations.schema';
 import { AuthService } from '../auth/auth.service';
 import { ZodError } from 'zod';
 import { prisma } from '../../shared/db';
+import { mediaService } from '../matches/media.service';
 
 export const integrationsRouter = Router();
 
@@ -45,7 +47,9 @@ integrationsRouter.get('/status', authenticate, async (req: Request, res: Respon
 
         const status: Record<string, any> = {
             steam: { connected: false },
-            spotify: { connected: false }
+            spotify: { connected: false },
+            anime: { connected: false },
+            movie: { connected: false }
         };
 
         for (const integration of integrations) {
@@ -127,6 +131,22 @@ integrationsRouter.delete('/steam', authenticate, async (req: Request, res: Resp
     }
 });
 
+// GET /api/integrations/steam/search - Search Steam Store (Public/Manual)
+integrationsRouter.get('/steam/search', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { q } = req.query;
+        if (!q || typeof q !== 'string') {
+            return res.status(400).json({ success: false, error: 'Query obrigatória' });
+        }
+
+        const results = await SteamService.searchStore(q);
+        res.json({ success: true, data: results });
+    } catch (error) {
+        console.error('Steam Store Search Error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao buscar na Steam Store' });
+    }
+});
+
 // GET /api/integrations/steam/games - Get all Steam games for selection
 integrationsRouter.get('/steam/games', authenticate, async (req: Request, res: Response) => {
     try {
@@ -196,12 +216,97 @@ integrationsRouter.put('/steam/favorites', authenticate, async (req: Request, re
             data: { data: JSON.stringify(data) }
         });
 
+        // Ingest Media Items for Favorites
+        try {
+            for (const game of favoriteGames) {
+                if (!game) continue;
+                const mediaItemId = await mediaService.ensureMediaItem(game.appid.toString(), 'GAME', game.name);
+                if (mediaItemId) {
+                    await prisma.favorite.updateMany({
+                        where: { userId, category: 'games', itemId: game.appid.toString() },
+                        data: { mediaItemId }
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Error ingesting steam media items:', e);
+        }
+
         res.json({ success: true, data: { favorites: favoriteGames } });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao salvar favoritos';
         res.status(500).json({ success: false, error: message });
     }
 });
+
+// PUT /api/integrations/steam/manual - Save manual Game data (Genres & Links)
+integrationsRouter.put('/steam/manual', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { genres, platformLinks, favorites } = req.body;
+
+        // Basic validation
+        if (genres && !Array.isArray(genres)) return res.status(400).json({ success: false, error: 'Gêneros inválidos' });
+        if (platformLinks && typeof platformLinks !== 'object') return res.status(400).json({ success: false, error: 'Links inválidos' });
+        if (favorites && !Array.isArray(favorites)) return res.status(400).json({ success: false, error: 'Favoritos inválidos' });
+
+        const existing = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'steam' } }
+        });
+
+        let data = existing ? JSON.parse(existing.data) : {};
+
+        data = {
+            ...data,
+            manual: true,
+            genres: genres || data.genres || [],
+            platformLinks: platformLinks || data.platformLinks || {},
+            favoriteGames: favorites || data.favoriteGames || [],
+            updatedAt: new Date().toISOString()
+        };
+
+        await prisma.$transaction(async (tx) => {
+            await tx.integration.upsert({
+                where: { userId_type: { userId, type: 'steam' } },
+                update: {
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                },
+                create: {
+                    userId,
+                    type: 'steam',
+                    externalId: `manual_steam_${userId}`,
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                }
+            });
+
+            // Sync to Favorites table for Discovery if favorites provided
+            if (favorites && favorites.length > 0) {
+                await tx.favorite.deleteMany({
+                    where: { userId, category: 'games' }
+                });
+
+                await tx.favorite.createMany({
+                    data: favorites.map((f: any, index: number) => ({
+                        userId,
+                        category: 'games',
+                        position: index + 1,
+                        itemId: f.appid.toString(),
+                        itemName: f.name,
+                        itemImageUrl: f.iconUrl
+                    }))
+                });
+            }
+        });
+
+        res.json({ success: true, data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao salvar dados de jogos';
+        res.status(500).json({ success: false, error: message });
+    }
+});
+
 
 // ==================== SPOTIFY ====================
 
@@ -337,14 +442,14 @@ integrationsRouter.get('/spotify/genres', authenticate, async (req: Request, res
 integrationsRouter.put('/spotify/manual', authenticate, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { profileUrl, playlists, genres, topSongs } = req.body;
+        const { profileUrl, playlists, genres, topSongs, platformLinks } = req.body;
 
         // Basic validation
         if (playlists && (!Array.isArray(playlists) || playlists.length > 3)) {
             return res.status(400).json({ success: false, error: 'Máximo de 3 playlists' });
         }
-        if (genres && (!Array.isArray(genres) || genres.length > 3)) {
-            return res.status(400).json({ success: false, error: 'Máximo de 3 gêneros' });
+        if (genres && (!Array.isArray(genres))) {
+            // Limit removed
         }
         if (topSongs && (!Array.isArray(topSongs) || topSongs.length > 5)) {
             return res.status(400).json({ success: false, error: 'Máximo de 5 músicas favoritas' });
@@ -365,21 +470,44 @@ integrationsRouter.put('/spotify/manual', authenticate, async (req: Request, res
             playlists: playlists || [],
             genres: genres || [],
             topSongs: topSongs || [], // { name, artist, url }
+            platformLinks: platformLinks || {},
             updatedAt: new Date().toISOString()
         };
 
-        await prisma.integration.upsert({
-            where: { userId_type: { userId, type: 'spotify' } },
-            update: {
-                data: JSON.stringify(data),
-                syncedAt: new Date()
-            },
-            create: {
-                userId,
-                type: 'spotify',
-                externalId: `manual_${userId}`,
-                data: JSON.stringify(data),
-                syncedAt: new Date()
+        await prisma.$transaction(async (tx) => {
+            // 1. Update Integration
+            await tx.integration.upsert({
+                where: { userId_type: { userId, type: 'spotify' } },
+                update: {
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                },
+                create: {
+                    userId,
+                    type: 'spotify',
+                    externalId: `manual_${userId}`,
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                }
+            });
+
+            // 2. Sync to Favorites table (for Discovery)
+            // Use topSongs as the source for "favorite music"
+            await tx.favorite.deleteMany({
+                where: { userId, category: 'music' }
+            });
+
+            if (topSongs && topSongs.length > 0) {
+                await tx.favorite.createMany({
+                    data: topSongs.map((s: any, index: number) => ({
+                        userId,
+                        category: 'music',
+                        position: index + 1,
+                        itemId: s.url || `manual_${index}`, // URL as ID if available
+                        itemName: `${s.name} - ${s.artist}`,
+                        itemImageUrl: s.imageUrl
+                    }))
+                });
             }
         });
 
@@ -444,11 +572,11 @@ integrationsRouter.get('/anime/genres', authenticate, async (req: Request, res: 
 integrationsRouter.put('/anime/manual', authenticate, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { genres, favorites, profileUrl } = req.body;
+        const { genres, favorites, profileUrl, platformLinks } = req.body;
 
         // Validation
-        if (genres && (!Array.isArray(genres) || genres.length > 3)) {
-            return res.status(400).json({ success: false, error: 'Máximo de 3 gêneros' });
+        if (genres && (!Array.isArray(genres))) {
+            // Limit removed
         }
         if (favorites && (!Array.isArray(favorites) || favorites.length > 5)) {
             return res.status(400).json({ success: false, error: 'Máximo de 5 animes favoritos' });
@@ -467,23 +595,62 @@ integrationsRouter.put('/anime/manual', authenticate, async (req: Request, res: 
             genres: genres || [],
             favorites: favorites || [], // { id, title, imageUrl }
             profileUrl,
+            platformLinks: platformLinks || {},
             updatedAt: new Date().toISOString()
         };
 
-        await prisma.integration.upsert({
-            where: { userId_type: { userId, type: 'anime' } },
-            update: {
-                data: JSON.stringify(data),
-                syncedAt: new Date()
-            },
-            create: {
-                userId,
-                type: 'anime',
-                externalId: `manual_anime_${userId}`,
-                data: JSON.stringify(data),
-                syncedAt: new Date()
+        await prisma.$transaction(async (tx) => {
+            // 1. Update Integration
+            await tx.integration.upsert({
+                where: { userId_type: { userId, type: 'anime' } },
+                update: {
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                },
+                create: {
+                    userId,
+                    type: 'anime',
+                    externalId: `manual_anime_${userId}`,
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                }
+            });
+
+            // 2. Sync to Favorites table (for Discovery)
+            await tx.favorite.deleteMany({
+                where: { userId, category: 'anime' }
+            });
+
+            if (favorites && favorites.length > 0) {
+                await tx.favorite.createMany({
+                    data: favorites.map((f: any, index: number) => ({
+                        userId,
+                        category: 'anime',
+                        position: index + 1,
+                        itemId: f.id.toString(),
+                        itemName: f.title,
+                        itemImageUrl: f.imageUrl
+                    }))
+                });
             }
         });
+
+        // 3. Ingest Media Items AFTER transaction completes (non-blocking)
+        if (favorites && favorites.length > 0) {
+            try {
+                for (const f of favorites) {
+                    const mediaItemId = await mediaService.ensureMediaItem(f.id.toString(), 'ANIME', f.title);
+                    if (mediaItemId) {
+                        await prisma.favorite.updateMany({
+                            where: { userId, category: 'anime', itemId: f.id.toString() },
+                            data: { mediaItemId }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Error ingesting anime media items:', e);
+            }
+        }
 
         res.json({ success: true, data });
     } catch (error) {
@@ -546,11 +713,11 @@ integrationsRouter.get('/movie/genres', authenticate, async (req: Request, res: 
 integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { genres, favorites, profileUrl } = req.body;
+        const { genres, favorites, profileUrl, platformLinks } = req.body;
 
         // Validation
-        if (genres && (!Array.isArray(genres) || genres.length > 3)) {
-            return res.status(400).json({ success: false, error: 'Máximo de 3 gêneros' });
+        if (genres && (!Array.isArray(genres))) {
+            // Limit removed
         }
         if (favorites && (!Array.isArray(favorites) || favorites.length > 5)) {
             return res.status(400).json({ success: false, error: 'Máximo de 5 filmes favoritos' });
@@ -569,23 +736,62 @@ integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: 
             genres: genres || [],
             favorites: favorites || [], // { id, title, imageUrl }
             profileUrl,
+            platformLinks: platformLinks || {},
             updatedAt: new Date().toISOString()
         };
 
-        await prisma.integration.upsert({
-            where: { userId_type: { userId, type: 'movie' } },
-            update: {
-                data: JSON.stringify(data),
-                syncedAt: new Date()
-            },
-            create: {
-                userId,
-                type: 'movie',
-                externalId: `manual_movie_${userId}`,
-                data: JSON.stringify(data),
-                syncedAt: new Date()
+        await prisma.$transaction(async (tx) => {
+            // 1. Update Integration
+            await tx.integration.upsert({
+                where: { userId_type: { userId, type: 'movie' } },
+                update: {
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                },
+                create: {
+                    userId,
+                    type: 'movie',
+                    externalId: `manual_movie_${userId}`,
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                }
+            });
+
+            // 2. Sync to Favorites table (for Discovery)
+            await tx.favorite.deleteMany({
+                where: { userId, category: 'movies' }
+            });
+
+            if (favorites && favorites.length > 0) {
+                await tx.favorite.createMany({
+                    data: favorites.map((f: any, index: number) => ({
+                        userId,
+                        category: 'movies',
+                        position: index + 1,
+                        itemId: f.id.toString(),
+                        itemName: f.title,
+                        itemImageUrl: f.imageUrl
+                    }))
+                });
             }
         });
+
+        // 3. Ingest Media Items AFTER transaction completes (non-blocking)
+        if (favorites && favorites.length > 0) {
+            try {
+                for (const f of favorites) {
+                    const mediaItemId = await mediaService.ensureMediaItem(f.id.toString(), 'MOVIE', f.title);
+                    if (mediaItemId) {
+                        await prisma.favorite.updateMany({
+                            where: { userId, category: 'movies', itemId: f.id.toString() },
+                            data: { mediaItemId }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Error ingesting movie media items:', e);
+            }
+        }
 
         res.json({ success: true, data });
     } catch (error) {
@@ -595,3 +801,116 @@ integrationsRouter.put('/movie/manual', authenticate, async (req: Request, res: 
 });
 
 
+
+// ==================== BOOKS (Google Books) ====================
+
+// GET /api/integrations/books/search - Search books
+integrationsRouter.get('/books/search', authenticate, async (req: Request, res: Response) => {
+    try {
+        const query = req.query.q as string;
+        if (!query) return res.json({ success: true, data: [] });
+
+        const results = await BooksService.searchBooks(query);
+        res.json({ success: true, data: results });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Erro ao buscar livros' });
+    }
+});
+
+// GET /api/integrations/books/genres - Get book genres
+integrationsRouter.get('/books/genres', authenticate, async (req: Request, res: Response) => {
+    res.json({ success: true, data: BooksService.getGenres() });
+});
+
+// GET /api/integrations/books - Get user's saved books
+integrationsRouter.get('/books', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const integration = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'books' } }
+        });
+
+        if (!integration) {
+            return res.json({ success: true, data: { connected: false } });
+        }
+
+        const data = JSON.parse(integration.data);
+        res.json({
+            success: true,
+            data: {
+                connected: true,
+                genres: data.genres || [],
+                favorites: data.favoriteBooks || []
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Erro ao buscar livros salvos' });
+    }
+});
+
+// PUT /api/integrations/books/manual - Save manual Books data
+integrationsRouter.put('/books/manual', authenticate, async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).userId;
+        const { genres, favorites } = req.body;
+
+        // Basic validation
+        if (genres && !Array.isArray(genres)) return res.status(400).json({ success: false, error: 'Gêneros inválidos' });
+        if (favorites && !Array.isArray(favorites)) return res.status(400).json({ success: false, error: 'Favoritos inválidos' });
+
+        const existing = await prisma.integration.findUnique({
+            where: { userId_type: { userId, type: 'books' } }
+        });
+
+        let data = existing ? JSON.parse(existing.data) : {};
+
+        data = {
+            ...data,
+            manual: true,
+            genres: genres || data.genres || [],
+            favoriteBooks: favorites || data.favoriteBooks || [],
+            updatedAt: new Date().toISOString()
+        };
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Update Integration
+            await tx.integration.upsert({
+                where: { userId_type: { userId, type: 'books' } },
+                update: {
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                },
+                create: {
+                    userId,
+                    type: 'books',
+                    externalId: `manual_books_${userId}`,
+                    data: JSON.stringify(data),
+                    syncedAt: new Date()
+                }
+            });
+
+            // 2. Update Favorites (Discovery) if favorites provided
+            if (favorites && favorites.length > 0) {
+                await tx.favorite.deleteMany({
+                    where: { userId, category: 'books' }
+                });
+
+                await tx.favorite.createMany({
+                    data: favorites.map((f: any, index: number) => ({
+                        userId,
+                        category: 'books',
+                        position: index + 1,
+                        itemId: f.id,
+                        itemName: f.title,
+                        itemImageUrl: f.imageUrl
+                    }))
+                });
+            }
+        });
+
+        res.json({ success: true, data });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao salvar livros';
+        res.status(500).json({ success: false, error: message });
+    }
+});
